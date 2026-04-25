@@ -1,8 +1,14 @@
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
-const getResend = () => new Resend(process.env.RESEND_API_KEY);
+const getTransporter = () => nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+    },
+});
 
-const codeEmailHTML = (code, email) => `55
+const codeEmailHTML = (code, email) => `
 <div style="font-family: Helvetica, Arial, sans-serif; max-width: 600px; margin: auto; padding: 30px; border-radius: 20px; background: #f4f1ee;">
   <div style="display: flex; align-items: center; justify-content: space-between;">
     <div style="display: flex; align-items: center; gap: 10px;">
@@ -26,8 +32,8 @@ const codeEmailHTML = (code, email) => `55
 </div>`;
 
 export const sendVerificationEmail = async (to, code) => {
-    await getResend().emails.send({
-        from: process.env.RESEND_FROM,
+    await getTransporter().sendMail({
+        from: `"cf.co" <${process.env.EMAIL_USER}>`,
         to,
         subject: 'cf.co — Verify your email',
         html: codeEmailHTML(code, to),
@@ -35,11 +41,10 @@ export const sendVerificationEmail = async (to, code) => {
 };
 
 export const sendPasswordResetEmail = async (to, code) => {
-    const result = await getResend().emails.send({
-        from: process.env.RESEND_FROM,
+    await getTransporter().sendMail({
+        from: `"cf.co" <${process.env.EMAIL_USER}>`,
         to,
         subject: 'cf.co — Reset your password',
         html: codeEmailHTML(code, to),
     });
-    console.log('Reset email result:', result);
 };

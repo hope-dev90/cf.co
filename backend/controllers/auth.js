@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { createUser, findUserByEmail, showUsers, saveOtp, verifyOtp, clearOtp, markEmailVerified, updatePassword } from "../models/users.js";
+import { createUser, findUserByEmail, showUsers, saveOtp, verifyOtp, deleteUser, clearOtp, markEmailVerified, updatePassword } from "../models/users.js";
 import { sendVerificationEmail, sendPasswordResetEmail } from "../utils/mailer.js";
 
 const generateOtp = () => String(Math.floor(100000 + Math.random() * 900000));
@@ -128,6 +128,16 @@ export const getAllUsers = async (req, res) => {
         return res.status(200).json(users);
     } catch (error) {
         console.error('Error fetching users:', error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};
+export const deleteUsers = async (req, res) => {
+    const { email } = req.body;
+    try {
+        await deleteUser(email);
+        return res.status(200).json({ message: "User deleted successfully" });
+    } catch (error) {
+        console.error("Error deleting user", error);
         return res.status(500).json({ message: "Internal server error" });
     }
 };

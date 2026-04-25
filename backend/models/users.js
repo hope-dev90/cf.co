@@ -70,3 +70,10 @@ export const updatePassword = async (email, hashedPassword) => {
         [hashedPassword, email]
     );
 };
+
+export const deleteUser = async(email) => {
+    await client.query(
+        `DELETE FROM users where email = $1`,
+        [email]
+    );
+};
