@@ -1,0 +1,12 @@
+import { register,login,forgotPassword,resetPassword,getAllUsersController,getProfile,verifyEmail } from "../controller/authController";
+import { authMiddleware } from "../middleware/authMiddleWare";
+import express from express;
+const router = express.Router();
+router.post('/register',authMiddleware,register);
+router.post('/login',authMiddleware,login);
+router.get('/forgot-password',authMiddleware,forgotPassword);
+router.post('/reset-password',authMiddleware,resetPassword);
+router.get('/profile',authMiddleware,getProfile);
+router.post('/verify-email',authMiddleware,verifyEmail);
+router.get('/users',authMiddleware,getAllUsersController);
+export default router;
