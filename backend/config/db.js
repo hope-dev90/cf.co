@@ -1,23 +1,41 @@
-import pkg from 'pg';
-const { Pool } = pkg;
+import pg from 'pg';
+import dotenv from 'dotenv';
 
-let pool;
+dotenv.config({ override: true });
+
+const { Pool } = pg;
+
+const pool = new Pool({
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT,
+    database: process.env.DB_NAME,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+});
 
 export const connectDB = async () => {
-    pool = new Pool({
-        user: process.env.PG_USER,
-        host: process.env.PG_HOST,
-        database: process.env.PG_DATABASE,
-        password: process.env.PG_PASSWORD,
-        port: Number(process.env.PG_PORT),
-    });
-
     try {
-        await pool.query('SELECT 1');
-        console.log("🐘 PostgreSQL connected successfully");
-    } catch (err) {
-        console.error("❌ PostgreSQL connection error: ", err);
+        const client = await pool.connect();
+        console.log('PostgreSQL connected');
+        client.release();
+    } catch (error) {
+        const refused = error.code === 'ECONNREFUSED' || error.errors?.some((err) => err.code === 'ECONNREFUSED');
+
+        if (refused) {
+            console.error(
+                [
+                    'PostgreSQL connection failed.',
+                    `No database is accepting connections at ${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || 5432}.`,
+                    'Start PostgreSQL, then run: npm run db:setup',
+                    'After that, start the server again with: node server.js'
+                ].join('\n')
+            );
+        } else {
+            console.error('PostgreSQL connection error:', error.message);
+        }
+
+        process.exit(1);
     }
 };
 
-export default { query: (...args) => pool.query(...args) };
+export default pool;

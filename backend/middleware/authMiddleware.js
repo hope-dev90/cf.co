@@ -1,40 +1,90 @@
-import jwt from "jsonwebtoken";
-import { findUserById } from "../models/users.js";
+import jwt from 'jsonwebtoken';
+import { findUserById } from '../models/userModels.js';
 
-
-export const adminOnly = (req, res, next) => {
-  if (!req.user) {
-    return res.status(401).json({ message: "Not authorized" });
-  }
-
-  if (req.user.role !== "admin") {
-    return res.status(403).json({ message: "Admin access only" });
-  }
-
-  next();
-};
 export const authMiddleware = async (req, res, next) => {
-  let token = req.headers.authorization;
+    let token = req.headers.authorization;
 
-  if (!token || !token.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "Not authorized" });
-  }
+    if (!token || !token.startsWith('Bearer ')) {
+        return res.status(401).json({
+            success: false,
+            message: 'Not authorized'
+        });
+    }
 
-  try {
-    token = token.split(" ")[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    try {
+        token = token.split(' ')[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = await findUserById(decoded.id);
 
-    req.user = await findUserById(decoded.id);
+        if (!req.user) {
+            return res.status(401).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
 
+        next();
+
+    } catch (err) {
+        return res.status(401).json({
+            success: false,
+            message: 'Token invalid'
+        });
+    }
+};
+
+export const restaurateurOnly = (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({ message: "User not found" });
+        return res.status(401).json({
+            success: false,
+            message: 'Not authorized'
+        });
+    }
+
+    if (req.user.role !== 'restaurateur') {
+        return res.status(403).json({
+            success: false,
+            message: 'Mentors only'
+        });
     }
 
     next();
-  } catch (err) {
-    res.status(401).json({ message: "Token invalid" });
-  }
-  
 };
 
+// ─── Admin only ───────────────────────────────────────────────
+export const adminOnly = (req, res, next) => {
+    if (!req.user) {
+        return res.status(401).json({
+            success: false,
+            message: 'Not authorized'
+        });
+    }
 
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({
+            success: false,
+            message: 'Admin access only'
+        });
+    }
+
+    next();
+};
+
+// ─── Mentor or Girl (both allowed) ────────────────────────────
+export const userOnly = (req, res, next) => {
+    if (!req.user) {
+        return res.status(401).json({
+            success: false,
+            message: 'Not authorized'
+        });
+    }
+
+    if (!['girl', 'mentor'].includes(req.user.role)) {
+        return res.status(403).json({
+            success: false,
+            message: 'Not authorized'
+        });
+    }
+
+    next();
+};
