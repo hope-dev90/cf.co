@@ -1,5 +1,5 @@
 import pool from "../config/db";
-export const createUser = async ({ name, email, password, role }) => {
+ const createUser = async ({ name, email, password, role }) => {
     const result = await pool.query(
         `INSERT INTO users (name, email, password, role) 
          VALUES ($1, $2, $3, $4) 
@@ -8,14 +8,14 @@ export const createUser = async ({ name, email, password, role }) => {
     );
     return result.rows[0];
 };
-export const findUserByEmail = async (email) => {
+ const findUserByEmail = async (email) => {
     const result = await pool.query(
         `SELECT * FROM users WHERE email = $1`,
         [email]
     );
     return result.rows[0];
 };
-export const findUserById = async (id) => {
+ const findUserById = async (id) => {
     const result = await pool.query(
         `SELECT id, name, email, role, is_verified
          FROM users WHERE id = $1`,
@@ -23,7 +23,7 @@ export const findUserById = async (id) => {
     );
     return result.rows[0];
 };
-export const getUserByRole = async () => {
+ const getUserByRole = async () => {
     const result = await pool.query(
         `SELECT id, name, email,
          FROM users 
@@ -31,4 +31,61 @@ export const getUserByRole = async () => {
          ORDER BY name ASC`
     );
     return result.rows;
+};
+ const saveOtp = async (email, otp, expiresAt) => {
+    await pool.query(
+        `UPDATE users 
+         SET otp = $1::text, otp_expires = $2::timestamptz 
+         WHERE email = $3`,
+        [otp, expiresAt, email]
+    );
+};
+
+ const verifyOtp = async (email, otp) => {
+    const result = await pool.query(
+        `SELECT * FROM users 
+         WHERE email = $1 
+         AND otp = $2::text 
+         AND otp_expires > NOW()`,
+        [email, otp]
+    );
+    return result.rows[0];
+};
+ const clearOtp = async (email) => {
+    await pool.query(
+        `UPDATE users 
+         SET otp = NULL, otp_expires = NULL 
+         WHERE email = $1`,
+        [email]
+    );
+};
+ const markEmailVerified = async (email) => {
+    await pool.query(
+        `UPDATE users SET is_verified = true WHERE email = $1`,
+        [email]
+    );
+};
+ const updatePassword = async (email, hashedPassword) => {
+    await pool.query(
+        `UPDATE users SET password = $1 WHERE email = $2`,
+        [hashedPassword, email]
+    );
+};
+ const deleteUser = async (email) => {
+    await pool.query(
+        `DELETE FROM users WHERE email = $1`,
+        [email]
+    );
+};
+ export const userModel =  {
+    createUser,
+    findUserByEmail,
+    findUserById,
+    getUserByRole,
+    saveOtp,
+    verifyOtp,
+    clearOtp,
+    markEmailVerified,
+    updatePassword,
+    deleteUser
 };

@@ -51,7 +51,7 @@ export const restaurateurOnly = (req, res, next) => {
     next();
 };
 
-// ─── Admin only ───────────────────────────────────────────────
+
 export const adminOnly = (req, res, next) => {
     if (!req.user) {
         return res.status(401).json({
@@ -70,7 +70,7 @@ export const adminOnly = (req, res, next) => {
     next();
 };
 
-// ─── Mentor or Girl (both allowed) ────────────────────────────
+
 export const userOnly = (req, res, next) => {
     if (!req.user) {
         return res.status(401).json({
