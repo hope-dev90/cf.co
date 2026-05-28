@@ -25,6 +25,17 @@ import {
   updateWaiterAvailability,
   setAvailabilityTaken,
   deleteWaiterAvailability,
+  addRestaurantTable,
+  getRestaurantTables,
+  getRestaurantTableById,
+  updateRestaurantTable,
+  deleteRestaurantTable,
+  addTableAvailability,
+  getTableAvailability,
+  getTableAvailabilityByDate,
+  updateTableAvailability,
+  updateTableStatus,
+  deleteTableAvailability,
 } from "../models/restaurantModel.js";
 
 // ------------------------------
@@ -442,5 +453,177 @@ export const deleteWaiterAvailabilityController = async (req, res) => {
     res
       .status(500)
       .json({ success: false, message: "Failed to delete availability" });
+  }
+};
+
+// ------------------------------
+// Restaurant Tables
+// ------------------------------
+
+export const addTableController = async (req, res) => {
+  try {
+    const table = await addRestaurantTable({
+      ...req.body,
+      restaurant_id: req.params.restaurantId,
+    });
+    res.status(201).json({ success: true, table });
+  } catch (error) {
+    console.error("Add table error:", error);
+    res.status(500).json({ success: false, message: "Failed to add table" });
+  }
+};
+
+export const getTablesController = async (req, res) => {
+  try {
+    const tables = await getRestaurantTables(req.params.restaurantId);
+    res.json({ success: true, tables });
+  } catch (error) {
+    console.error("Get tables error:", error);
+    res.status(500).json({ success: false, message: "Failed to get tables" });
+  }
+};
+
+export const getTableByIdController = async (req, res) => {
+  try {
+    const table = await getRestaurantTableById(req.params.id);
+    if (!table) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Table not found" });
+    }
+    res.json({ success: true, table });
+  } catch (error) {
+    console.error("Get table error:", error);
+    res.status(500).json({ success: false, message: "Failed to get table" });
+  }
+};
+
+export const updateTableController = async (req, res) => {
+  try {
+    const table = await updateRestaurantTable(req.params.id, req.body);
+    if (!table) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Table not found" });
+    }
+    res.json({ success: true, table });
+  } catch (error) {
+    console.error("Update table error:", error);
+    res.status(500).json({ success: false, message: "Failed to update table" });
+  }
+};
+
+export const deleteTableController = async (req, res) => {
+  try {
+    const table = await deleteRestaurantTable(req.params.id);
+    if (!table) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Table not found" });
+    }
+    res.json({ success: true, message: "Table deleted" });
+  } catch (error) {
+    console.error("Delete table error:", error);
+    res.status(500).json({ success: false, message: "Failed to delete table" });
+  }
+};
+
+// ------------------------------
+// Table Availability
+// ------------------------------
+
+export const addTableAvailabilityController = async (req, res) => {
+  try {
+    const availability = await addTableAvailability({
+      ...req.body,
+      table_id: req.params.tableId,
+    });
+    res.status(201).json({ success: true, availability });
+  } catch (error) {
+    console.error("Add table availability error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to add table availability" });
+  }
+};
+
+export const getTableAvailabilityController = async (req, res) => {
+  try {
+    const availability = await getTableAvailability(req.params.tableId);
+    res.json({ success: true, availability });
+  } catch (error) {
+    console.error("Get table availability error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to get table availability" });
+  }
+};
+
+export const getTableAvailabilityByDateController = async (req, res) => {
+  try {
+    const availability = await getTableAvailabilityByDate(
+      req.params.restaurantId,
+      req.params.date,
+    );
+    res.json({ success: true, availability });
+  } catch (error) {
+    console.error("Get table availability by date error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to get table availability" });
+  }
+};
+
+export const updateTableAvailabilityController = async (req, res) => {
+  try {
+    const availability = await updateTableAvailability(req.params.id, req.body);
+    if (!availability) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Table availability not found" });
+    }
+    res.json({ success: true, availability });
+  } catch (error) {
+    console.error("Update table availability error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to update table availability" });
+  }
+};
+
+export const updateTableStatusController = async (req, res) => {
+  try {
+    const availability = await updateTableStatus(
+      req.params.id,
+      req.body.status,
+    );
+    if (!availability) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Table availability not found" });
+    }
+    res.json({ success: true, availability });
+  } catch (error) {
+    console.error("Update table status error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to update table status" });
+  }
+};
+
+export const deleteTableAvailabilityController = async (req, res) => {
+  try {
+    const availability = await deleteTableAvailability(req.params.id);
+    if (!availability) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Table availability not found" });
+    }
+    res.json({ success: true, message: "Table availability deleted" });
+  } catch (error) {
+    console.error("Delete table availability error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to delete table availability" });
   }
 };

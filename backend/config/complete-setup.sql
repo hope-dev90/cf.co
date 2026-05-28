@@ -91,6 +91,33 @@ CREATE TABLE IF NOT EXISTS waiter_availability (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Restaurant Tables (physical tables you eat at)
+CREATE TABLE IF NOT EXISTS restaurant_tables (
+  id SERIAL PRIMARY KEY,
+  restaurant_id INTEGER REFERENCES restaurants(id) ON DELETE CASCADE,
+  table_number VARCHAR(50) NOT NULL,
+  capacity INTEGER NOT NULL,
+  location_description VARCHAR(255),
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Table Availability
+CREATE TABLE IF NOT EXISTS table_availability (
+  id SERIAL PRIMARY KEY,
+  table_id INTEGER REFERENCES restaurant_tables(id) ON DELETE CASCADE,
+  date DATE NOT NULL,
+  start_time TIME NOT NULL,
+  end_time TIME NOT NULL,
+  status VARCHAR(50) NOT NULL DEFAULT 'available' CHECK (status IN ('available', 'reserved', 'occupied')),
+  customer_name VARCHAR(255),
+  customer_phone VARCHAR(50),
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Orders table
 CREATE TABLE IF NOT EXISTS orders (
   id SERIAL PRIMARY KEY,

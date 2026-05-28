@@ -1,5 +1,156 @@
 import pool from "../config/db.js";
 
+// ------------------------------
+// Restaurant Tables (physical tables)
+// ------------------------------
+
+export const addRestaurantTable = async (tableData) => {
+  const {
+    restaurant_id,
+    table_number,
+    capacity,
+    location_description,
+    is_active,
+  } = tableData;
+  const result = await pool.query(
+    `INSERT INTO restaurant_tables (restaurant_id, table_number, capacity, location_description, is_active)
+     VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+    [restaurant_id, table_number, capacity, location_description, is_active],
+  );
+  return result.rows[0];
+};
+
+export const getRestaurantTables = async (restaurant_id) => {
+  const result = await pool.query(
+    `SELECT * FROM restaurant_tables WHERE restaurant_id = $1 ORDER BY table_number`,
+    [restaurant_id],
+  );
+  return result.rows;
+};
+
+export const getRestaurantTableById = async (id) => {
+  const result = await pool.query(
+    `SELECT * FROM restaurant_tables WHERE id = $1`,
+    [id],
+  );
+  return result.rows[0];
+};
+
+export const updateRestaurantTable = async (id, tableData) => {
+  const { table_number, capacity, location_description, is_active } = tableData;
+  const result = await pool.query(
+    `UPDATE restaurant_tables 
+     SET table_number = $1, capacity = $2, location_description = $3, is_active = $4, updated_at = NOW()
+     WHERE id = $5 RETURNING *`,
+    [table_number, capacity, location_description, is_active, id],
+  );
+  return result.rows[0];
+};
+
+export const deleteRestaurantTable = async (id) => {
+  const result = await pool.query(
+    `DELETE FROM restaurant_tables WHERE id = $1 RETURNING *`,
+    [id],
+  );
+  return result.rows[0];
+};
+
+// ------------------------------
+// Table Availability
+// ------------------------------
+
+export const addTableAvailability = async (availabilityData) => {
+  const {
+    table_id,
+    date,
+    start_time,
+    end_time,
+    status,
+    customer_name,
+    customer_phone,
+    notes,
+  } = availabilityData;
+  const result = await pool.query(
+    `INSERT INTO table_availability (table_id, date, start_time, end_time, status, customer_name, customer_phone, notes)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+    [
+      table_id,
+      date,
+      start_time,
+      end_time,
+      status,
+      customer_name,
+      customer_phone,
+      notes,
+    ],
+  );
+  return result.rows[0];
+};
+
+export const getTableAvailability = async (table_id) => {
+  const result = await pool.query(
+    `SELECT * FROM table_availability WHERE table_id = $1 ORDER BY date, start_time`,
+    [table_id],
+  );
+  return result.rows;
+};
+
+export const getTableAvailabilityByDate = async (restaurant_id, date) => {
+  const result = await pool.query(
+    `SELECT ta.*, rt.table_number, rt.capacity
+     FROM table_availability ta
+     JOIN restaurant_tables rt ON ta.table_id = rt.id
+     WHERE rt.restaurant_id = $1 AND ta.date = $2
+     ORDER BY rt.table_number, ta.start_time`,
+    [restaurant_id, date],
+  );
+  return result.rows;
+};
+
+export const updateTableAvailability = async (id, availabilityData) => {
+  const {
+    date,
+    start_time,
+    end_time,
+    status,
+    customer_name,
+    customer_phone,
+    notes,
+  } = availabilityData;
+  const result = await pool.query(
+    `UPDATE table_availability 
+     SET date = $1, start_time = $2, end_time = $3, status = $4, customer_name = $5, customer_phone = $6, notes = $7, updated_at = NOW()
+     WHERE id = $8 RETURNING *`,
+    [
+      date,
+      start_time,
+      end_time,
+      status,
+      customer_name,
+      customer_phone,
+      notes,
+      id,
+    ],
+  );
+  return result.rows[0];
+};
+
+export const updateTableStatus = async (id, status) => {
+  const result = await pool.query(
+    `UPDATE table_availability SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
+    [status, id],
+  );
+  return result.rows[0];
+};
+
+export const deleteTableAvailability = async (id) => {
+  const result = await pool.query(
+    `DELETE FROM table_availability WHERE id = $1 RETURNING *`,
+    [id],
+  );
+  return result.rows[0];
+};
+
 // Create a new restaurant
 export const createRestaurant = async (restaurantData) => {
   const {
@@ -32,7 +183,6 @@ export const createRestaurant = async (restaurantData) => {
   return result.rows[0];
 };
 
-// Get all restaurants
 export const getAllRestaurants = async () => {
   const result = await pool.query(
     `SELECT * FROM restaurants ORDER BY created_at DESC`,
@@ -40,7 +190,6 @@ export const getAllRestaurants = async () => {
   return result.rows;
 };
 
-// Get restaurant by ID
 export const getRestaurantById = async (id) => {
   const result = await pool.query(`SELECT * FROM restaurants WHERE id = $1`, [
     id,
@@ -57,7 +206,6 @@ export const getRestaurantsByUserId = async (user_id) => {
   return result.rows;
 };
 
-// Update restaurant
 export const updateRestaurant = async (id, restaurantData) => {
   const {
     name,
@@ -99,11 +247,6 @@ export const deleteRestaurant = async (id) => {
   return result.rows[0];
 };
 
-// ------------------------------
-// Restaurant Locations
-// ------------------------------
-
-// Add location to restaurant
 export const addRestaurantLocation = async (locationData) => {
   const {
     restaurant_id,
@@ -125,7 +268,6 @@ export const addRestaurantLocation = async (locationData) => {
   return result.rows[0];
 };
 
-// Get locations for a restaurant
 export const getRestaurantLocations = async (restaurant_id) => {
   const result = await pool.query(
     `SELECT * FROM restaurant_locations WHERE restaurant_id = $1`,
@@ -134,7 +276,6 @@ export const getRestaurantLocations = async (restaurant_id) => {
   return result.rows;
 };
 
-// Update restaurant location
 export const updateRestaurantLocation = async (id, locationData) => {
   const { address, city, state, postal_code, latitude, longitude } =
     locationData;
@@ -159,11 +300,6 @@ export const deleteRestaurantLocation = async (id) => {
   return result.rows[0];
 };
 
-// ------------------------------
-// Menu Items
-// ------------------------------
-
-// Add menu item
 export const addMenuItem = async (menuData) => {
   const {
     restaurant_id,
@@ -193,7 +329,6 @@ export const addMenuItem = async (menuData) => {
   return result.rows[0];
 };
 
-// Get menu items for restaurant
 export const getMenuItems = async (restaurant_id) => {
   const result = await pool.query(
     `SELECT * FROM menu_items WHERE restaurant_id = $1 ORDER BY category, name`,
@@ -202,7 +337,6 @@ export const getMenuItems = async (restaurant_id) => {
   return result.rows;
 };
 
-// Get menu item by ID
 export const getMenuItemById = async (id) => {
   const result = await pool.query(`SELECT * FROM menu_items WHERE id = $1`, [
     id,
@@ -226,7 +360,6 @@ export const updateMenuItem = async (id, menuData) => {
   return result.rows[0];
 };
 
-// Delete menu item
 export const deleteMenuItem = async (id) => {
   const result = await pool.query(
     `DELETE FROM menu_items WHERE id = $1 RETURNING *`,
@@ -234,10 +367,6 @@ export const deleteMenuItem = async (id) => {
   );
   return result.rows[0];
 };
-
-// ------------------------------
-// Waiters
-// ------------------------------
 
 // Add waiter
 export const addWaiter = async (waiterData) => {
@@ -254,7 +383,6 @@ export const addWaiter = async (waiterData) => {
   return result.rows[0];
 };
 
-// Get waiters for restaurant
 export const getWaiters = async (restaurant_id) => {
   const result = await pool.query(
     `SELECT * FROM waiters WHERE restaurant_id = $1 ORDER BY last_name, first_name`,

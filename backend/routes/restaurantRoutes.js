@@ -27,13 +27,21 @@ import {
   updateWaiterAvailabilityController,
   setAvailabilityTakenController,
   deleteWaiterAvailabilityController,
+  addTableController,
+  getTablesController,
+  getTableByIdController,
+  updateTableController,
+  deleteTableController,
+  addTableAvailabilityController,
+  getTableAvailabilityController,
+  getTableAvailabilityByDateController,
+  updateTableAvailabilityController,
+  updateTableStatusController,
+  deleteTableAvailabilityController,
 } from "../controller/restaurantController.js";
 
 const restaurantRouter = express.Router();
 
-// ------------------------------
-// Restaurants
-// ------------------------------
 restaurantRouter.post("/", authMiddleware, createRestaurantController);
 restaurantRouter.get("/", getAllRestaurantsController);
 restaurantRouter.get("/my", authMiddleware, getMyRestaurantsController);
@@ -41,9 +49,6 @@ restaurantRouter.get("/:id", getRestaurantByIdController);
 restaurantRouter.put("/:id", authMiddleware, updateRestaurantController);
 restaurantRouter.delete("/:id", authMiddleware, deleteRestaurantController);
 
-// ------------------------------
-// Restaurant Locations
-// ------------------------------
 restaurantRouter.post(
   "/:restaurantId/locations",
   authMiddleware,
@@ -61,9 +66,6 @@ restaurantRouter.delete(
   deleteLocationController,
 );
 
-// ------------------------------
-// Menu Items
-// ------------------------------
 restaurantRouter.post(
   "/:restaurantId/menu",
   authMiddleware,
@@ -74,9 +76,6 @@ restaurantRouter.get("/menu/:id", getMenuItemByIdController);
 restaurantRouter.put("/menu/:id", authMiddleware, updateMenuItemController);
 restaurantRouter.delete("/menu/:id", authMiddleware, deleteMenuItemController);
 
-// ------------------------------
-// Waiters
-// ------------------------------
 restaurantRouter.post(
   "/:restaurantId/waiters",
   authMiddleware,
@@ -87,9 +86,6 @@ restaurantRouter.get("/waiters/:id", getWaiterByIdController);
 restaurantRouter.put("/waiters/:id", authMiddleware, updateWaiterController);
 restaurantRouter.delete("/waiters/:id", authMiddleware, deleteWaiterController);
 
-// ------------------------------
-// Waiter Availability
-// ------------------------------
 restaurantRouter.post(
   "/waiters/:waiterId/availability",
   authMiddleware,
@@ -117,6 +113,51 @@ restaurantRouter.delete(
   "/availability/:id",
   authMiddleware,
   deleteWaiterAvailabilityController,
+);
+
+// ------------------------------
+// Restaurant Tables
+// ------------------------------
+restaurantRouter.post(
+  "/:restaurantId/tables",
+  authMiddleware,
+  addTableController,
+);
+restaurantRouter.get("/:restaurantId/tables", getTablesController);
+restaurantRouter.get("/tables/:id", getTableByIdController);
+restaurantRouter.put("/tables/:id", authMiddleware, updateTableController);
+restaurantRouter.delete("/tables/:id", authMiddleware, deleteTableController);
+
+// ------------------------------
+// Table Availability
+// ------------------------------
+restaurantRouter.post(
+  "/tables/:tableId/availability",
+  authMiddleware,
+  addTableAvailabilityController,
+);
+restaurantRouter.get(
+  "/tables/:tableId/availability",
+  getTableAvailabilityController,
+);
+restaurantRouter.get(
+  "/:restaurantId/tables/availability/:date",
+  getTableAvailabilityByDateController,
+);
+restaurantRouter.put(
+  "/tables/availability/:id",
+  authMiddleware,
+  updateTableAvailabilityController,
+);
+restaurantRouter.patch(
+  "/tables/availability/:id/status",
+  authMiddleware,
+  updateTableStatusController,
+);
+restaurantRouter.delete(
+  "/tables/availability/:id",
+  authMiddleware,
+  deleteTableAvailabilityController,
 );
 
 export default restaurantRouter;
