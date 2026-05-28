@@ -49,10 +49,10 @@ export const register = async (req, res) => {
       });
     }
 
-    if (!["girl", "mentor"].includes(role)) {
+    if (!["client", "restauratuer"].includes(role)) {
       return res.status(400).json({
         success: false,
-        message: "Role must be girl or mentor",
+        message: "Role must be client, restaurateur",
       });
     }
 
