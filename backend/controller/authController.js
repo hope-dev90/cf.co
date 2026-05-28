@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import bcrypt from "bcrypt.js";
+import bcrypt from "bcryptjs";
 import { sendOtpEmail } from "../utils/email.js";
 import {
   createUser,
