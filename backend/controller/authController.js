@@ -49,7 +49,7 @@ export const register = async (req, res) => {
       });
     }
 
-    if (!["client", "restauratuer"].includes(role)) {
+    if (!["client", "restaurateur"].includes(role)) {
       return res.status(400).json({
         success: false,
         message: "Role must be client, restaurateur",

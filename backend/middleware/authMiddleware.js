@@ -79,7 +79,7 @@ export const userOnly = (req, res, next) => {
         });
     }
 
-    if (!['girl', 'mentor'].includes(req.user.role)) {
+    if (!['client', 'restaurateur', 'admin'].includes(req.user.role)) {
         return res.status(403).json({
             success: false,
             message: 'Not authorized'
