@@ -1,4 +1,4 @@
-import pool from "../config/db";
+import pool from "../config/db.js";
 export const createUser = async ({ name, email, password, role }) => {
     const result = await pool.query(
         `INSERT INTO users (name, email, password, role) 
@@ -23,11 +23,20 @@ export const findUserById = async (id) => {
     );
     return result.rows[0];
 };
-export const getUserByRole = async () => {
+export const getUserByRole = async (role) => {
     const result = await pool.query(
-        `SELECT id, name, email,
+        `SELECT id, name, email
          FROM users 
          WHERE role = $1
+         ORDER BY name ASC`,
+        [role]
+    );
+    return result.rows;
+};
+export const getAllUsers = async () => {
+    const result = await pool.query(
+        `SELECT id, name, email, role, is_verified
+         FROM users 
          ORDER BY name ASC`
     );
     return result.rows;
