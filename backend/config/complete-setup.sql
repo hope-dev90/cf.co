@@ -22,6 +22,35 @@ CREATE TABLE IF NOT EXISTS subscribers (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Restaurants table
+CREATE TABLE IF NOT EXISTS restaurants (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  cuisine_type VARCHAR(255),
+  phone VARCHAR(50),
+  email VARCHAR(255),
+  website VARCHAR(255),
+  operating_hours JSONB,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Restaurant Locations table
+CREATE TABLE IF NOT EXISTS restaurant_locations (
+  id SERIAL PRIMARY KEY,
+  restaurant_id INTEGER REFERENCES restaurants(id) ON DELETE CASCADE,
+  address VARCHAR(255) NOT NULL,
+  city VARCHAR(100),
+  state VARCHAR(100),
+  postal_code VARCHAR(20),
+  latitude DECIMAL(10, 7),
+  longitude DECIMAL(10, 7),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Orders table
 CREATE TABLE IF NOT EXISTS orders (
   id SERIAL PRIMARY KEY,
