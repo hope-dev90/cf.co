@@ -344,7 +344,7 @@ export const getMenuItemById = async (id) => {
   return result.rows[0];
 };
 
-// Update menu item
+
 export const updateMenuItem = async (id, menuData) => {
   const { name, description, price, category, is_available, image_url } =
     menuData;
