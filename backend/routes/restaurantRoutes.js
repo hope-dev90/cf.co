@@ -1,5 +1,5 @@
 import express from "express";
-import { authMiddleware } from "../middleware/authMiddleWare.js";
+import { adminOnly, authMiddleware } from "../middleware/authMiddleWare.js";
 import {
   createRestaurantController,
   getAllRestaurantsController,
@@ -42,12 +42,12 @@ import {
 
 const restaurantRouter = express.Router();
 
-restaurantRouter.post("/", authMiddleware, createRestaurantController);
+restaurantRouter.post("/", authMiddleware,adminOnly, createRestaurantController);
 restaurantRouter.get("/", getAllRestaurantsController);
 restaurantRouter.get("/my", authMiddleware, getMyRestaurantsController);
 restaurantRouter.get("/:id", getRestaurantByIdController);
 restaurantRouter.put("/:id", authMiddleware, updateRestaurantController);
-restaurantRouter.delete("/:id", authMiddleware, deleteRestaurantController);
+restaurantRouter.delete("/:id", authMiddleware,adminOnly, deleteRestaurantController);
 
 restaurantRouter.post(
   "/:restaurantId/locations",
