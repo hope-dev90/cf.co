@@ -1,7 +1,7 @@
 .navbar{
-    background-color: rgb(238, 236, 236);
+    background-color: rgb(232, 227, 221);
  box-shadow: inset;
 }
-.nav-item{
-    color: blueviolet;
+.navbar-nav{
+    padding-right: 90px;
 }
