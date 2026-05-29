@@ -350,6 +350,12 @@ export const getMenuItemById = async (id) => {
   ]);
   return result.rows[0];
 };
+export const filterByCategory = async(category)=>{
+  const result = await pool.query(`SELECT * FROM menu_items WHERE category = $1`,[
+category,
+  ]);
+  return result.rows[0];
+}
 
 export const updateMenuItem = async (id, menuData) => {
   const { name, description, price, category, is_available, image_url } =

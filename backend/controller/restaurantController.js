@@ -14,6 +14,7 @@ import {
   getMenuItemById,
   updateMenuItem,
   deleteMenuItem,
+  filterByCategory,
   addWaiter,
   getWaiters,
   getWaiterById,
@@ -133,9 +134,7 @@ export const deleteRestaurantController = async (req, res) => {
   }
 };
 
-// ------------------------------
-// Restaurant Locations
-// ------------------------------
+
 
 export const addLocationController = async (req, res) => {
   try {
@@ -196,10 +195,6 @@ export const deleteLocationController = async (req, res) => {
   }
 };
 
-// ------------------------------
-// Menu Items
-// ------------------------------
-
 export const addMenuItemController = async (req, res) => {
   try {
     const menuItem = await addMenuItem({
@@ -214,7 +209,6 @@ export const addMenuItemController = async (req, res) => {
       .json({ success: false, message: "Failed to add menu item" });
   }
 };
-
 export const getMenuItemsController = async (req, res) => {
   try {
     const menuItems = await getMenuItems(req.params.restaurantId);
@@ -243,6 +237,22 @@ export const getMenuItemByIdController = async (req, res) => {
       .json({ success: false, message: "Failed to get menu item" });
   }
 };
+export const filterByCategoryController = async(req,res)=>{
+  try{
+    const menuItem = await filterByCategory(req.params.category);
+if(!menuItem){
+  return res
+  .status(404)
+  .json({success: false, message:"Menu category not found"});
+}
+res.json({success: true, menuItem});
+  }
+  catch(error){
+    console.error("Get menu Item error: ",error);
+    res.status(500)
+    res.json({success: false , message:"failed to get menu item"});
+  }
+}
 
 export const updateMenuItemController = async (req, res) => {
   try {
