@@ -1,8 +1,5 @@
 import pool from "../config/db.js";
 
-// ------------------------------
-// Restaurant Tables (physical tables)
-// ------------------------------
 
 export const addRestaurantTable = async (tableData) => {
   const {
@@ -55,9 +52,6 @@ export const deleteRestaurantTable = async (id) => {
   return result.rows[0];
 };
 
-// ------------------------------
-// Table Availability
-// ------------------------------
 
 export const addTableAvailability = async (availabilityData) => {
   const {
@@ -97,9 +91,10 @@ export const getTableAvailability = async (table_id) => {
 
 export const getTableAvailabilityByDate = async (restaurant_id, date) => {
   const result = await pool.query(
-    `SELECT ta.*, rt.table_number, rt.capacity
+    `SELECT ta.*, rt.table_number, rt.capacity, u.name as user_name, u.email as user_email
      FROM table_availability ta
      JOIN restaurant_tables rt ON ta.table_id = rt.id
+     LEFT JOIN users u ON ta.user_id = u.id
      WHERE rt.restaurant_id = $1 AND ta.date = $2
      ORDER BY rt.table_number, ta.start_time`,
     [restaurant_id, date],
@@ -151,7 +146,19 @@ export const deleteTableAvailability = async (id) => {
   return result.rows[0];
 };
 
-// Create a new restaurant
+export const reserveTable = async (availabilityId, userId, customerData) => {
+  const { customer_name, customer_phone, notes } = customerData;
+  const result = await pool.query(
+    `UPDATE table_availability 
+     SET status = 'reserved', user_id = $1, customer_name = $2, customer_phone = $3, notes = $4, updated_at = NOW()
+     WHERE id = $5 AND status = 'available' 
+     RETURNING *`,
+    [userId, customer_name, customer_phone, notes, availabilityId],
+  );
+  return result.rows[0];
+};
+
+
 export const createRestaurant = async (restaurantData) => {
   const {
     user_id,
@@ -343,7 +350,6 @@ export const getMenuItemById = async (id) => {
   ]);
   return result.rows[0];
 };
-
 
 export const updateMenuItem = async (id, menuData) => {
   const { name, description, price, category, is_available, image_url } =

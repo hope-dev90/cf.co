@@ -36,6 +36,7 @@ import {
   updateTableAvailability,
   updateTableStatus,
   deleteTableAvailability,
+  reserveTable,
 } from "../models/restaurantModel.js";
 
 // ------------------------------
@@ -615,15 +616,31 @@ export const deleteTableAvailabilityController = async (req, res) => {
   try {
     const availability = await deleteTableAvailability(req.params.id);
     if (!availability) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Table availability not found" });
+      return res.status(404).json({ success: false, message: "Table availability not found" });
     }
     res.json({ success: true, message: "Table availability deleted" });
   } catch (error) {
     console.error("Delete table availability error:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to delete table availability" });
+    res.status(500).json({ success: false, message: "Failed to delete table availability" });
+  }
+};
+
+export const reserveTableController = async (req, res) => {
+  try {
+    const availability = await reserveTable(
+      req.params.id,
+      req.user.id,
+      req.body
+    );
+    if (!availability) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Table is not available for reservation" 
+      });
+    }
+    res.status(200).json({ success: true, availability });
+  } catch (error) {
+    console.error("Reserve table error:", error);
+    res.status(500).json({ success: false, message: "Failed to reserve table" });
   }
 };
