@@ -1,8 +1,3 @@
--- Create database (if needed)
--- CREATE DATABASE cfco;
--- \c cfco;
-
--- Create users table
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
@@ -16,5 +11,5 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Add google_id column if table already exists
-ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id VARCHAR(255);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);

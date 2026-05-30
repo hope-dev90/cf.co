@@ -10,13 +10,16 @@ import {
 } from "../controller/authController.js";
 import { authMiddleware, adminOnly } from "../middleware/authMiddleWare.js";
 import express from "express";
+
 const authRouter = express.Router();
+
 authRouter.post("/register", register);
 authRouter.post("/login", login);
+authRouter.post("/google", googleLogin);
+authRouter.post("/verify-email", verifyEmail);
 authRouter.post("/forgot-password", forgotPassword);
 authRouter.post("/reset-password", resetPassword);
 authRouter.get("/profile", authMiddleware, getProfile);
-authRouter.post("/verify-email", verifyEmail);
 authRouter.get("/users", authMiddleware, adminOnly, getAllUsersController);
-authRouter.post("/google", googleLogin);
+
 export default authRouter;

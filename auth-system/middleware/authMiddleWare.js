@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import config from "../config/env.js";
 import { findUserById } from "../models/userModels.js";
 
 export const authMiddleware = async (req, res, next) => {
@@ -13,7 +14,7 @@ export const authMiddleware = async (req, res, next) => {
 
   try {
     token = token.split(" ")[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, config.jwt.secret);
     req.user = await findUserById(decoded.id);
 
     if (!req.user) {
@@ -27,27 +28,9 @@ export const authMiddleware = async (req, res, next) => {
   } catch (err) {
     return res.status(401).json({
       success: false,
-      message: "Token invalid",
+      message: "Invalid token",
     });
   }
-};
-
-export const restaurateurOnly = (req, res, next) => {
-  if (!req.user) {
-    return res.status(401).json({
-      success: false,
-      message: "Not authorized",
-    });
-  }
-
-  if (req.user.role !== "restaurateur") {
-    return res.status(403).json({
-      success: false,
-      message: "Restaurateurs only",
-    });
-  }
-
-  next();
 };
 
 export const adminOnly = (req, res, next) => {
@@ -68,7 +51,7 @@ export const adminOnly = (req, res, next) => {
   next();
 };
 
-export const userOnly = (req, res, next) => {
+export const restaurateurOnly = (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({
       success: false,
@@ -76,8 +59,19 @@ export const userOnly = (req, res, next) => {
     });
   }
 
-  if (!["client", "restaurateur", "admin"].includes(req.user.role)) {
+  if (!["restaurateur", "admin"].includes(req.user.role)) {
     return res.status(403).json({
+      success: false,
+      message: "Not authorized",
+    });
+  }
+
+  next();
+};
+
+export const userOnly = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
       success: false,
       message: "Not authorized",
     });
