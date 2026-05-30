@@ -6,6 +6,7 @@ import {
   getAllUsersController,
   getProfile,
   verifyEmail,
+  googleLogin,
 } from "../controller/authController.js";
 import { authMiddleware, adminOnly } from "../middleware/authMiddleWare.js";
 import express from "express";
@@ -17,4 +18,5 @@ authRouter.post("/reset-password", resetPassword);
 authRouter.get("/profile", authMiddleware, getProfile);
 authRouter.post("/verify-email", verifyEmail);
 authRouter.get("/users", authMiddleware, adminOnly, getAllUsersController);
+authRouter.post("/google", googleLogin);
 export default authRouter;

@@ -1,10 +1,14 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import { OAuth2Client } from "google-auth-library";
+import pool from "../config/db.js";
 import { sendOtpEmail } from "../utils/email.js";
 import {
   createUser,
+  createGoogleUser,
   findUserByEmail,
   findUserById,
+  findUserByGoogleId,
   getUserByRole,
   saveOtp,
   verifyOtp,
@@ -14,6 +18,8 @@ import {
   deleteUser,
   getAllUsers,
 } from "../models/userModels.js";
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -322,6 +328,81 @@ export const getAllUsersController = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Something went wrong",
+    });
+  }
+};
+
+export const googleLogin = async (req, res) => {
+  const { credential, role } = req.body;
+
+  try {
+    if (!credential) {
+      return res.status(400).json({
+        success: false,
+        message: "Google credential is required",
+      });
+    }
+
+    if (role && !["client", "restaurateur"].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: "Role must be client or restaurateur",
+      });
+    }
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload || !payload.email || !payload.sub) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Google credentials",
+      });
+    }
+
+    const googleId = payload.sub;
+    let user = await findUserByGoogleId(googleId);
+
+    if (!user) {
+      user = await findUserByEmail(payload.email);
+      if (user) {
+        const result = await pool.query(
+          `UPDATE users SET google_id = $1 WHERE email = $2 RETURNING *`,
+          [googleId, payload.email],
+        );
+        user = result.rows[0];
+      } else {
+        const defaultRole = role || "client";
+        user = await createGoogleUser({
+          googleId,
+          name: payload.name || "Google User",
+          email: payload.email,
+          role: defaultRole,
+        });
+      }
+    }
+
+    const token = generateToken(user.id);
+
+    return res.status(200).json({
+      success: true,
+      message: "Google login successful",
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    console.error("googleLogin error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Google login failed",
     });
   }
 };
