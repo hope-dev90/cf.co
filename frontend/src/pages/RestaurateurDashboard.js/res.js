@@ -164,7 +164,7 @@ export default function Dashboard() {
               {/* Bar chart — Orders vs Staff Delays */}
               <div className="chart-card">
                 <p className="chart-title">Orders vs Staff Delays</p>
-                <ResponsiveContainer width="100%" height={180}></ResponsiveContainer>
+                <ResponsiveContainer width="100%" height={180}>
                   <BarChart data={barSummary} barSize={14}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1e7dd" />
                     <XAxis dataKey="day" tick={{ fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} />
