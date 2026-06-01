@@ -66,34 +66,17 @@ export const register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await createUser({
-      name,
-      email,
-      password: hashedPassword,
-      role,
-    });
+    const user = await createUser({ name, email, password: hashedPassword, role });
 
-    const otp = generateOtp();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+    await markEmailVerified(email);
 
-    await saveOtp(email, otp, expiresAt);
-
-    await sendOtpEmail({
-      to: email,
-      otp,
-      purpose: "verify your email",
-    });
-    console.log(`Verification OTP sent to ${email}`);
+    const token = generateToken(user.id, user.role);
 
     return res.status(201).json({
       success: true,
-      message: "Registration successful! Check your email for OTP",
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
+      message: "Registration successful",
+      token,
+      user: { id: user.id, name: user.name, email: user.email, role: user.role },
     });
   } catch (error) {
     console.error("register error:", error);
@@ -164,13 +147,6 @@ export const login = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Invalid credentials",
-      });
-    }
-
-    if (!user.is_verified) {
-      return res.status(400).json({
-        success: false,
-        message: "Please verify your email first",
       });
     }
 

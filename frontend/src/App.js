@@ -10,6 +10,9 @@ import MenuManagement from "./pages/RestaurateurDashboard.js/menu";
 import OrdersDashboard from "./pages/RestaurateurDashboard.js/order";
 import StaffManagement from "./pages/RestaurateurDashboard.js/staff";
 import UserDashboard from "./pages/userDashbaord/user";
+import UserHome from "./pages/userDashbaord/home";
+import UserBookings from "./pages/userDashbaord/bookings";
+import UserProfile from "./pages/userDashbaord/profile";
 
 function ProtectedRoute({ children, roles }) {
   const { isAuthenticated, user } = useAuth();
@@ -44,7 +47,16 @@ function AppRoutes() {
       } />
 
       <Route path="/user" element={
+        <ProtectedRoute roles={["client", "restaurateur", "admin"]}><UserHome /></ProtectedRoute>
+      } />
+      <Route path="/user/order" element={
         <ProtectedRoute roles={["client", "restaurateur", "admin"]}><UserDashboard /></ProtectedRoute>
+      } />
+      <Route path="/user/bookings" element={
+        <ProtectedRoute roles={["client", "restaurateur", "admin"]}><UserBookings /></ProtectedRoute>
+      } />
+      <Route path="/user/profile" element={
+        <ProtectedRoute roles={["client", "restaurateur", "admin"]}><UserProfile /></ProtectedRoute>
       } />
 
       <Route path="*" element={<Navigate to="/" replace />} />

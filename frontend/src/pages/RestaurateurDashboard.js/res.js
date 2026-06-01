@@ -1,11 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import logo from "../../../src/assets/logo.png";
-import { restaurantAPI, orderAPI } from "../../services/api";
+import { restaurantAPI } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
-import {
-  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-} from "recharts";
 
 const ordersData = [
   { day: "Mon", value: 40 }, { day: "Tue", value: 55 }, { day: "Wed", value: 45 },
@@ -15,6 +12,22 @@ const staffData = [
   { day: "Mon", value: 80 }, { day: "Tue", value: 60 }, { day: "Wed", value: 20 },
   { day: "Thu", value: 10 }, { day: "Fri", value: 30 }, { day: "Sat", value: 70 }, { day: "Sun", value: 55 },
 ];
+
+function BarChart({ data, color }) {
+  const max = Math.max(...data.map(d => d.value));
+  return (
+    <div style={{ display: "flex", alignItems: "flex-end", gap: "8px", height: "120px", padding: "0 4px" }}>
+      {data.map((d) => (
+        <div key={d.day} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", height: "100%" }}>
+          <div style={{ flex: 1, display: "flex", alignItems: "flex-end", width: "100%" }}>
+            <div style={{ width: "100%", height: `${(d.value / max) * 100}%`, background: color, borderRadius: "4px 4px 0 0", minHeight: "4px" }} />
+          </div>
+          <span style={{ fontSize: "10px", color: "#9b8878" }}>{d.day}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -123,28 +136,12 @@ export default function Dashboard() {
 
             <div className="chart-card">
               <p className="chart-title">Overview of Orders this Week</p>
-              <ResponsiveContainer width="100%" height={160}>
-                <LineChart data={ordersData} margin={{ top: 4, right: 8, left: -24, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0ebe4" />
-                  <XAxis dataKey="day" tick={{ fontSize: 11, fill: "#9b8878" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: "#9b8878" }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: "1px solid #ede8e2" }} />
-                  <Line type="monotone" dataKey="value" stroke="#8b1a1a" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
+              <BarChart data={ordersData} color="#8b1a1a" />
             </div>
 
             <div className="chart-card">
               <p className="chart-title">Overview of Staff Delays</p>
-              <ResponsiveContainer width="100%" height={160}>
-                <LineChart data={staffData} margin={{ top: 4, right: 8, left: -24, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0ebe4" />
-                  <XAxis dataKey="day" tick={{ fontSize: 11, fill: "#9b8878" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: "#9b8878" }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: "1px solid #ede8e2" }} />
-                  <Line type="monotone" dataKey="value" stroke="#2a0d0d" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
+              <BarChart data={staffData} color="#2a0d0d" />
             </div>
           </main>
 
