@@ -4,6 +4,7 @@ import LandingPage from "./pages/LandingPage.js/page";
 import LoginPage from "./pages/auth/login";
 import SignupPage from "./pages/auth/signup";
 import ForgotPassword from "./pages/auth/ForgotPassword";
+import VerifyEmail from "./pages/auth/VerifyEmail";
 import AdminDashboard from "./pages/AdminDashbaord/admin";
 import RestaurateurDashboard from "./pages/RestaurateurDashboard.js/res";
 import MenuManagement from "./pages/RestaurateurDashboard.js/menu";
@@ -28,6 +29,7 @@ function AppRoutes() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
 
       <Route path="/admin" element={
         <ProtectedRoute roles={["admin"]}><AdminDashboard /></ProtectedRoute>

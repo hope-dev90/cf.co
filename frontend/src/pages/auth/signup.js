@@ -1,11 +1,9 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { authAPI } from "../../services/api";
-import { useAuth } from "../../context/AuthContext";
 
 export default function SignupPage() {
   const navigate = useNavigate();
-  const { login } = useAuth();
   const [form, setForm] = useState({ name: "", email: "", password: "", role: "client" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -17,12 +15,8 @@ export default function SignupPage() {
     setError("");
     setLoading(true);
     try {
-      const res = await authAPI.register(form);
-      const { token, user } = res.data;
-      login({ email: user.email, role: user.role, id: user.id, name: user.name }, token);
-      if (user.role === "admin") navigate("/admin");
-      else if (user.role === "restaurateur") navigate("/restaurateur");
-      else navigate("/user");
+      await authAPI.register(form);
+      navigate("/verify-email", { state: { email: form.email } });
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed.");
     } finally {
