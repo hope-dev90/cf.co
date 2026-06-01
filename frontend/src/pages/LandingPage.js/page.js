@@ -6,9 +6,9 @@ import Footer from "./footer";
 
 function LandingPage() {
   const stats = [
-    { number: "5,000+", label: "Pasta" },
-    { number: "200+", label: "Chicken" },
-    { number: "98%", label: "Cappuccino" },
+    { number: "5,000+", label: "Orders Served" },
+    { number: "200+", label: "Menu Items" },
+    { number: "98%", label: "Satisfaction" },
   ];
 
   return (

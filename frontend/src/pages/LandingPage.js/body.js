@@ -1,8 +1,12 @@
 import FoodImage from "../../../src/assets/landing.jpg";
-import "./landing.css"
+import "./landing.css";
+import { useNavigate } from "react-router-dom";
+
 function Hero() {
+  const navigate = useNavigate();
   return (
     <section
+      id="hero"
       className="container-fluid"
       style={{
         backgroundColor: "#f4efeb",
@@ -90,33 +94,16 @@ function Hero() {
           <div className="d-flex gap-4 flex-wrap">
             <button
               className="btn px-5 py-3 hero-btn-primary"
-              style={{
-                backgroundColor: "#7a5c5c",
-                color: "white",
-                marginTop:"90px",
-                fontWeight: "600",
-                borderRadius: "4px",
-                border: "none",
-                marginRight:"40px",
-                fontSize: "18px",
-                transition: "background-color 0.2s ease",
-              }}
+              style={{ backgroundColor: "#7a5c5c", color: "white", marginTop:"90px", fontWeight: "600", borderRadius: "4px", border: "none", marginRight:"40px", fontSize: "18px", transition: "background-color 0.2s ease" }}
+              onClick={() => navigate("/user")}
             >
               Order now
             </button>
 
             <button
               className="btn px-5 py-3 hero-btn-secondary"
-              style={{
-                backgroundColor: "transparent",
-                color: "#3f3f3f",
-                marginTop:"90px",
-                fontWeight: "600",
-                borderRadius: "4px",
-                border: "1px solid #888",
-                fontSize: "18px",
-                transition: "border-color 0.2s ease, color 0.2s ease",
-              }}
+              style={{ backgroundColor: "transparent", color: "#3f3f3f", marginTop:"90px", fontWeight: "600", borderRadius: "4px", border: "1px solid #888", fontSize: "18px", transition: "border-color 0.2s ease, color 0.2s ease" }}
+              onClick={() => { const el = document.getElementById("about"); if (el) el.scrollIntoView({ behavior: "smooth" }); }}
             >
               About us
             </button>

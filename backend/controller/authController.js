@@ -15,8 +15,8 @@ import {
   getAllUsers,
 } from "../models/userModels.js";
 
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
+const generateToken = (id, role) => {
+  return jwt.sign({ id, role }, process.env.JWT_SECRET, {
     expiresIn: "7d",
   });
 };
@@ -182,7 +182,7 @@ export const login = async (req, res) => {
       });
     }
 
-    const token = generateToken(user.id);
+    const token = generateToken(user.id, user.role);
 
     return res.status(200).json({
       success: true,
