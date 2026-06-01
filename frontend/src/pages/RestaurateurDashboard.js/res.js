@@ -4,67 +4,28 @@ import logo from "../../../src/assets/logo.png";
 import { restaurantAPI } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 
-// Reuse Recharts just like in StudentAttendance
-import {
-  BarChart as RBarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  ResponsiveContainer,
-} from "recharts";
-
 const ordersData = [
-  { day: "Mon", value: 40 },
-  { day: "Tue", value: 55 },
-  { day: "Wed", value: 45 },
-  { day: "Thu", value: 70 },
-  { day: "Fri", value: 60 },
-  { day: "Sat", value: 80 },
-  { day: "Sun", value: 65 },
+  { day: "Mon", value: 40 }, { day: "Tue", value: 55 }, { day: "Wed", value: 45 },
+  { day: "Thu", value: 70 }, { day: "Fri", value: 60 }, { day: "Sat", value: 80 }, { day: "Sun", value: 65 },
 ];
-
 const staffData = [
-  { day: "Mon", value: 80 },
-  { day: "Tue", value: 60 },
-  { day: "Wed", value: 20 },
-  { day: "Thu", value: 10 },
-  { day: "Fri", value: 30 },
-  { day: "Sat", value: 70 },
-  { day: "Sun", value: 55 },
+  { day: "Mon", value: 80 }, { day: "Tue", value: 60 }, { day: "Wed", value: 20 },
+  { day: "Thu", value: 10 }, { day: "Fri", value: 30 }, { day: "Sat", value: 70 }, { day: "Sun", value: 55 },
 ];
 
-// A reusable chart card using Recharts
 function WeeklyBarChart({ data, color }) {
+  const max = Math.max(...data.map(d => d.value));
   return (
     <div className="chart-card">
-      <div style={{ width: "100%", height: 220 }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <RBarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1e7dd" />
-            <XAxis
-              dataKey="day"
-              tick={{ fontSize: 11, fill: "#9b8878" }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <YAxis
-              tick={{ fontSize: 11, fill: "#9b8878" }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <Tooltip
-              cursor={{ fill: "rgba(0,0,0,0.03)" }}
-              contentStyle={{
-                borderRadius: 8,
-                border: "1px solid #ede8e2",
-                fontSize: 12,
-              }}
-            />
-            <Bar dataKey="value" fill={color} radius={[4, 4, 0, 0]} barSize={20} />
-          </RBarChart>
-        </ResponsiveContainer>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: "8px", height: "140px", padding: "0 4px" }}>
+        {data.map((d) => (
+          <div key={d.day} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", height: "100%" }}>
+            <div style={{ flex: 1, display: "flex", alignItems: "flex-end", width: "100%" }}>
+              <div style={{ width: "100%", height: `${(d.value / max) * 100}%`, background: color, borderRadius: "4px 4px 0 0", minHeight: "4px" }} />
+            </div>
+            <span style={{ fontSize: "10px", color: "#9b8878" }}>{d.day}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
