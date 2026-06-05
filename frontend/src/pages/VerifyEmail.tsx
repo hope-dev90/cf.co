@@ -1,40 +1,40 @@
-import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Loader2, ArrowLeft } from 'lucide-react';
-import { authApi } from '../lib/api';
+import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Loader2, ArrowLeft } from "lucide-react";
+import { authApi } from "../lib/api";
 
 export default function VerifyEmail() {
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   // Get email from location state if available
-  const [email, setEmail] = useState(location.state?.email || '');
-  const [otp, setOtp] = useState('');
+  const [email, setEmail] = useState(location.state?.email || "");
+  const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
-    
+    setError("");
+    setSuccess("");
+
     if (!email || !otp) {
-      setError('Please enter your email and OTP');
+      setError("Please enter your email and OTP");
       return;
     }
-    
+
     try {
       setLoading(true);
       await authApi.verifyEmail(email, otp);
-      setSuccess('Email verified successfully!');
-      
+      setSuccess("Email verified successfully!");
+
       // After a short delay, redirect to login
       setTimeout(() => {
-        navigate('/login');
+        navigate("/login");
       }, 2000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
     }
@@ -43,11 +43,11 @@ export default function VerifyEmail() {
   return (
     <div className="min-h-screen flex bg-white">
       {/* Left side - Image */}
-      <div className="hidden lg:flex lg:w-1/2 items-center justify-center bg-gradient-to-br from-[#faf5f0] to-[#f5ede4]">
+      <div className="hidden lg:flex lg:w-1/2 items-center justify-center bg-gradient-to-br from-[#faf5f0] to-[#f5ede4] overflow-hidden">
         <img
           src="/image.png"
           alt="CF Company Welcome"
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain max-h-screen"
         />
       </div>
 
@@ -56,7 +56,7 @@ export default function VerifyEmail() {
         <div className="w-full max-w-md">
           {/* Back Button */}
           <button
-            onClick={() => navigate('/login')}
+            onClick={() => navigate("/login")}
             className="flex items-center gap-2 text-[#4a4a68] hover:text-[#e8722a] mb-8 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -65,7 +65,9 @@ export default function VerifyEmail() {
 
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-4xl font-bold text-[#1a1a2e] mb-2">Verify Email</h1>
+            <h1 className="text-4xl font-bold text-[#1a1a2e] mb-2">
+              Verify Email
+            </h1>
             <p className="text-[#4a4a68]">Enter the OTP sent to your email</p>
           </div>
 
@@ -87,7 +89,10 @@ export default function VerifyEmail() {
           <form onSubmit={handleVerify} className="space-y-5">
             {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-base font-semibold text-[#1a1a2e] mb-3">
+              <label
+                htmlFor="email"
+                className="block text-base font-semibold text-[#1a1a2e] mb-3"
+              >
                 Email
               </label>
               <input
@@ -103,7 +108,10 @@ export default function VerifyEmail() {
 
             {/* OTP */}
             <div>
-              <label htmlFor="otp" className="block text-base font-semibold text-[#1a1a2e] mb-3">
+              <label
+                htmlFor="otp"
+                className="block text-base font-semibold text-[#1a1a2e] mb-3"
+              >
                 OTP Code
               </label>
               <input
@@ -125,7 +133,7 @@ export default function VerifyEmail() {
               className="w-full mt-8 py-3 rounded-lg bg-[#1a1a2e] hover:bg-[#0f0f1e] text-white font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading && <Loader2 className="w-5 h-5 animate-spin" />}
-              {loading ? 'Verifying...' : 'Verify Email'}
+              {loading ? "Verifying..." : "Verify Email"}
             </button>
           </form>
         </div>

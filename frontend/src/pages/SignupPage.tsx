@@ -82,11 +82,11 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen flex bg-white">
       {/* Left side - Image */}
-      <div className="hidden lg:flex lg:w-1/2 items-center justify-center bg-gradient-to-br from-[#faf5f0] to-[#f5ede4]">
+      <div className="hidden lg:flex lg:w-1/2 items-center justify-center bg-gradient-to-br from-[#faf5f0] to-[#f5ede4] overflow-hidden">
         <img
           src="/image.png"
           alt="CF Company Welcome"
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain max-h-screen"
         />
       </div>
 

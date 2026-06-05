@@ -364,9 +364,7 @@ const UserDashboard: React.FC = () => {
       >
         {/* Logo */}
         <div className="p-6 flex items-center gap-3 border-b border-gray-700">
-          <div className="p-2 rounded-lg" style={{ backgroundColor: '#e8722a' }}>
-            <UtensilsCrossed size={24} color="white" />
-          </div>
+          <img src="/logo.png" alt="CF Company" className="h-10 w-auto" />
           <span className="text-xl font-bold text-white">CF Company</span>
         </div>
 
