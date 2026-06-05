@@ -1,12 +1,12 @@
 import {
-  register,
-  login,
-  forgotPassword,
-  resetPassword,
-  getAllUsersController,
-  getProfile,
-  verifyEmail,
-  googleLogin,
+    register,
+    login,
+    forgotPassword,
+    resetPassword,
+    getAllUsersController,
+    getProfile,
+    verifyEmail,
+    googleLogin,
 } from "../controller/authController.js";
 import { authMiddleware, adminOnly } from "../middleware/authMiddleWare.js";
 import express from "express";

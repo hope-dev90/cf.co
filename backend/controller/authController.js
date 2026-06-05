@@ -2,10 +2,13 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { sendOtpEmail } from "../utils/email.js";
 import { OAuth2Client } from "google-auth-library";
+import pool from "../config/db.js";
 import {
   createUser,
+  createGoogleUser,
   findUserByEmail,
   findUserById,
+  findUserByGoogleId,
   getUserByRole,
   saveOtp,
   verifyOtp,
@@ -33,13 +36,23 @@ const googleClient = new OAuth2Client(
 );
 
 export const googleLogin = async (req, res) => {
-  const { credential } = req.body;
+  const { credential, role } = req.body;
 
   try {
     if (!credential) {
       return res.status(400).json({
         success: false,
         message: "Google credential is required",
+      });
+    }
+
+    if (
+      role &&
+      !["client", "restaurateur", "restaurant_owner"].includes(role)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid role",
       });
     }
 
@@ -50,25 +63,41 @@ export const googleLogin = async (req, res) => {
     });
 
     const payload = ticket.getPayload();
+    const googleId = payload.sub;
     const email = payload.email;
-    const name = payload.name;
+    const name = payload.name || "User";
 
-    // Check if user exists
-    let user = await findUserByEmail(email);
+    // Check if user exists by Google ID first
+    let user = await findUserByGoogleId(googleId);
 
     if (!user) {
-      // Create new user if doesn't exist
-      user = await createUser({
-        name,
-        email,
-        password: null, // No password for Google users
-        role: "client", // Default role for Google signups
-      });
+      // Check if user exists by email
+      user = await findUserByEmail(email);
 
-      // Mark email as verified since Google already verified it
-      await markEmailVerified(email);
-    } else if (!user.is_verified) {
-      // If user exists but not verified, mark as verified
+      if (user) {
+        // Link Google ID to existing user
+        const result = await pool.query(
+          `UPDATE users SET google_id = $1 WHERE email = $2 RETURNING *`,
+          [googleId, email],
+        );
+        user = result.rows[0];
+      } else {
+        // Create new user with Google
+        let normalizedRole = role || "client";
+        if (normalizedRole === "restaurant_owner") {
+          normalizedRole = "restaurateur";
+        }
+
+        user = await createGoogleUser({
+          googleId,
+          name,
+          email,
+          role: normalizedRole,
+        });
+      }
+    }
+
+    if (!user.is_verified) {
       await markEmailVerified(email);
     }
 
@@ -87,6 +116,12 @@ export const googleLogin = async (req, res) => {
     });
   } catch (error) {
     console.error("googleLogin error:", error);
+    if (error.message && error.message.includes("Token used too late")) {
+      return res.status(400).json({
+        success: false,
+        message: "Google token expired",
+      });
+    }
     return res.status(500).json({
       success: false,
       message: "Google login failed",

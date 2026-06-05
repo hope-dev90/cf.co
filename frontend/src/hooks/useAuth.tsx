@@ -31,7 +31,7 @@ interface AuthContextType {
   ) => Promise<void>;
   signOut: () => void;
   logout: () => void; // Alias for signOut to maintain compatibility
-  googleSignIn: (credential: string) => Promise<void>;
+  googleSignIn: (credential: string, role?: SignupRole) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -123,10 +123,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null);
   };
 
-  const googleSignIn = async (credential: string) => {
+  const googleSignIn = async (credential: string, role?: SignupRole) => {
     setLoading(true);
     try {
-      const data = await authApi.googleLogin(credential);
+      const data = await authApi.googleLogin(credential, role);
 
       const token = data.token;
       const userProfile = {
