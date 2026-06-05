@@ -25,7 +25,6 @@ import {
   Image as ImageIcon,
   Check,
   AlertCircle,
-  CheckCircle2,
   XCircle,
   Loader2,
 } from "lucide-react";
@@ -97,7 +96,7 @@ interface DeliverySettings {
 
 const OwnerDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { logout, profile: authProfile } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<
     "dashboard" | "menu" | "orders" | "analytics" | "settings"
@@ -634,7 +633,7 @@ const OwnerDashboard: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
+      logout();
       navigate("/");
     } catch (error) {
       console.error("Error logging out:", error);
@@ -762,7 +761,7 @@ const OwnerDashboard: React.FC = () => {
             <div className="space-y-8">
               <div>
                 <h1 className="text-4xl font-bold text-[#1a1a2e] mb-2">
-                  Welcome back, {user?.user_metadata?.name || "Owner"}!
+                  Welcome back, {authProfile?.name || "Owner"}!
                 </h1>
                 <p className="text-gray-600">
                   Here's your restaurant performance today

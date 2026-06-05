@@ -4,9 +4,9 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const apiClient = async (url: string, options: RequestInit = {}) => {
   const token = localStorage.getItem('auth_token');
   
-  const headers = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...options.headers,
+    ...(options.headers as Record<string, string>),
   };
 
   if (token) {

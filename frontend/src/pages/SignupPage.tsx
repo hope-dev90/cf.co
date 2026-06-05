@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { User, Mail, Lock, Loader2, Store } from "lucide-react";
+import { User, Loader2, Store } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 
 type UserRole = "client" | "restaurant_owner";

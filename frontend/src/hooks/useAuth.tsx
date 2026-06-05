@@ -1,7 +1,14 @@
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { authApi } from '../lib/api';
+import {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useEffect,
+} from "react";
+import { authApi } from "../lib/api";
 
-type Role = 'client' | 'restaurateur' | 'admin';
+type Role = "client" | "restaurateur" | "admin";
+type SignupRole = "client" | "restaurant_owner"; // For frontend UI
 
 interface Profile {
   id: string;
@@ -16,8 +23,14 @@ interface AuthContextType {
   token: string | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, fullName: string, role: Role) => Promise<void>;
+  signUp: (
+    email: string,
+    password: string,
+    fullName: string,
+    role: SignupRole,
+  ) => Promise<void>;
   signOut: () => void;
+  logout: () => void; // Alias for signOut to maintain compatibility
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -28,6 +41,7 @@ const AuthContext = createContext<AuthContextType>({
   signIn: async () => {},
   signUp: async () => {},
   signOut: () => {},
+  logout: () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -38,8 +52,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Check for existing token in local storage on mount
   useEffect(() => {
-    const savedToken = localStorage.getItem('auth_token');
-    const savedProfile = localStorage.getItem('auth_profile');
+    const savedToken = localStorage.getItem("auth_token");
+    const savedProfile = localStorage.getItem("auth_profile");
     if (savedToken && savedProfile) {
       setToken(savedToken);
       setProfile(JSON.parse(savedProfile));
@@ -55,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     try {
       const data = await authApi.login(email, password);
-      
+
       const token = data.token;
       const userProfile = {
         id: data.user.id,
@@ -63,10 +77,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         name: data.user.name,
         role: data.user.role as Role,
       };
-      
-      localStorage.setItem('auth_token', token);
-      localStorage.setItem('auth_profile', JSON.stringify(userProfile));
-      
+
+      localStorage.setItem("auth_token", token);
+      localStorage.setItem("auth_profile", JSON.stringify(userProfile));
+
       setToken(token);
       setProfile(userProfile);
       setUser({ id: userProfile.id, email: userProfile.email });
@@ -77,14 +91,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string, fullName: string, role: Role) => {
+  const signUp = async (
+    email: string,
+    password: string,
+    fullName: string,
+    role: SignupRole,
+  ) => {
     setLoading(true);
     try {
       // Map roles to backend roles
-      const backendRole = role === 'restaurant_owner' ? 'restaurateur' : role;
-      
+      const backendRole = role === "restaurant_owner" ? "restaurateur" : role;
+
       await authApi.register(fullName, email, password, backendRole);
-      
+
       // After registration, user needs to verify email, so don't sign in automatically
       // Instead, just let them know to check email
     } catch (error) {
@@ -95,15 +114,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = () => {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('auth_profile');
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("auth_profile");
     setToken(null);
     setUser(null);
     setProfile(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, token, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        profile,
+        token,
+        loading,
+        signIn,
+        signUp,
+        signOut,
+        logout: signOut,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

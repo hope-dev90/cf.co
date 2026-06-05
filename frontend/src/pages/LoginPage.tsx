@@ -1,25 +1,29 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Loader2 } from 'lucide-react';
-import { useAuth } from '../hooks/useAuth';
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
+import { useAuth } from "../hooks/useAuth";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { signIn, loading } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     try {
       await signIn(email, password);
       // Redirect will be handled by App.tsx through auth state
-      navigate(email === 'owner@example.com' ? '/owner' : '/dashboard');
+      navigate(email === "owner@example.com" ? "/owner" : "/dashboard");
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred. Please try again.');
+      setError(
+        err instanceof Error
+          ? err.message
+          : "An error occurred. Please try again.",
+      );
     }
   };
 
@@ -46,7 +50,9 @@ export default function LoginPage() {
           {/* Demo Info */}
           <div className="mb-6 p-4 rounded-lg bg-blue-50 border border-blue-200">
             <p className="text-sm text-blue-700 font-medium">Demo Accounts:</p>
-            <p className="text-xs text-blue-600 mt-1">Food Lover: user@example.com</p>
+            <p className="text-xs text-blue-600 mt-1">
+              Food Lover: user@example.com
+            </p>
             <p className="text-xs text-blue-600">Owner: owner@example.com</p>
             <p className="text-xs text-blue-600">Password: password123</p>
           </div>
@@ -62,7 +68,10 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} className="space-y-5">
             {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-base font-semibold text-[#1a1a2e] mb-3">
+              <label
+                htmlFor="email"
+                className="block text-base font-semibold text-[#1a1a2e] mb-3"
+              >
                 Email
               </label>
               <input
@@ -78,7 +87,10 @@ export default function LoginPage() {
 
             {/* Password */}
             <div>
-              <label htmlFor="password" className="block text-base font-semibold text-[#1a1a2e] mb-3">
+              <label
+                htmlFor="password"
+                className="block text-base font-semibold text-[#1a1a2e] mb-3"
+              >
                 Password
               </label>
               <input
@@ -99,7 +111,7 @@ export default function LoginPage() {
               className="w-full mt-8 py-3 rounded-lg bg-[#1a1a2e] hover:bg-[#0f0f1e] text-white font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading && <Loader2 className="w-5 h-5 animate-spin" />}
-              {loading ? 'Signing in...' : 'Signup'}
+              {loading ? "Signing in..." : "Signup"}
             </button>
           </form>
 
@@ -111,7 +123,10 @@ export default function LoginPage() {
           {/* Sign up link */}
           <div className="text-center">
             <span className="text-[#4a4a68]">Don't have an account? </span>
-            <Link to="/signup" className="font-semibold text-[#1a1a2e] hover:text-[#e8722a] transition-colors">
+            <Link
+              to="/signup"
+              className="font-semibold text-[#1a1a2e] hover:text-[#e8722a] transition-colors"
+            >
               Create one
             </Link>
           </div>
