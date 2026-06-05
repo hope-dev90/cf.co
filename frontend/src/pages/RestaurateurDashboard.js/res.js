@@ -1,42 +1,25 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import logo from "../../../src/assets/logo.png";
-import { restaurantAPI } from "../../services/api";
+import { restaurantAPI, waiterAPI, orderAPI } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import {
-  ResponsiveContainer,
-  PieChart, Pie, Cell,
-  BarChart, Bar,
-  XAxis, YAxis,
-  Tooltip, Legend,
-  CartesianGrid,
+  ResponsiveContainer, PieChart, Pie, Cell,
+  BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid,
 } from "recharts";
 
 const NAVY = "#2e5a88";
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-const ordersData = [
-  { day: "Mon", value: 40 }, { day: "Tue", value: 55 }, { day: "Wed", value: 45 },
-  { day: "Thu", value: 70 }, { day: "Fri", value: 60 }, { day: "Sat", value: 80 }, { day: "Sun", value: 65 },
-];
-const staffData = [
-  { day: "Mon", value: 80 }, { day: "Tue", value: 60 }, { day: "Wed", value: 20 },
-  { day: "Thu", value: 10 }, { day: "Fri", value: 30 }, { day: "Sat", value: 70 }, { day: "Sun", value: 55 },
-];
-const pieData = [
-  { name: "Completed", value: 120, color: "#10b981" },
-  { name: "In Progress", value: 45, color: "#f59e0b" },
-  { name: "Cancelled", value: 15, color: "#ef4444" },
-];
-const barSummary = ordersData.map((o) => {
-  const staffDay = staffData.find((s) => s.day === o.day) || { value: 0 };
-  return { day: o.day, Orders: o.value, Delays: staffDay.value };
-});
+const pieColors = { completed: "#10b981", pending: "#f59e0b", preparing: "#3b82f6", cancelled: "#ef4444" };
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [message, setMessage] = useState("");
   const [restaurant, setRestaurant] = useState(null);
+  const [pieData, setPieData] = useState([]);
+  const [barSummary, setBarSummary] = useState(DAYS.map(d => ({ day: d, Orders: 0, Staff: 0 })));
   const [notifications, setNotifications] = useState([
     { title: "Kitchen closing early at 9 PM", meta: "Sent to 412 customers · Today, 2:15 PM" },
     { title: "Special: Fresh White Truffle Menu", meta: "Sent to 850 customers · Yesterday, 10:00 AM" },
@@ -45,7 +28,44 @@ export default function Dashboard() {
 
   useEffect(() => {
     restaurantAPI.getMine().then((res) => {
-      if (res.data?.length > 0) setRestaurant(res.data[0]);
+      if (res.data?.length > 0) {
+        const r = res.data[0];
+        setRestaurant(r);
+
+        // Fetch orders for pie chart
+        orderAPI.getAll().then(oRes => {
+          const orders = oRes.data || [];
+          const counts = orders.reduce((acc, o) => {
+            const s = o.status || "pending";
+            acc[s] = (acc[s] || 0) + 1;
+            return acc;
+          }, {});
+          setPieData(
+            Object.entries(counts).map(([name, value]) => ({
+              name: name.charAt(0).toUpperCase() + name.slice(1),
+              value,
+              color: pieColors[name] || "#9b8878",
+            }))
+          );
+
+          // Build bar summary by day of week
+          const dayCounts = DAYS.map(day => ({ day, Orders: 0, Staff: 0 }));
+          orders.forEach(o => {
+            if (o.created_at) {
+              const d = new Date(o.created_at).getDay();
+              const idx = d === 0 ? 6 : d - 1;
+              dayCounts[idx].Orders += 1;
+            }
+          });
+          setBarSummary(dayCounts);
+        }).catch(() => {});
+
+        // Fetch waiters for staff count
+        waiterAPI.getWaiters(r.id).then(wRes => {
+          const waiters = wRes.data || [];
+          setBarSummary(prev => prev.map(d => ({ ...d, Staff: waiters.length })));
+        }).catch(() => {});
+      }
     }).catch(() => {});
   }, []);
 
@@ -143,7 +163,7 @@ export default function Dashboard() {
                 <ResponsiveContainer width="100%" height={180}>
                   <PieChart>
                     <Pie
-                      data={pieData}
+                      data={pieData.length > 0 ? pieData : [{ name: "No data", value: 1, color: "#e0d8ce" }]}
                       cx="50%"
                       cy="50%"
                       innerRadius={48}
@@ -151,8 +171,8 @@ export default function Dashboard() {
                       paddingAngle={4}
                       dataKey="value"
                     >
-                      {pieData.map((e) => (
-                        <Cell key={e.name} fill={e.color} />
+                      {(pieData.length > 0 ? pieData : [{ color: "#e0d8ce" }]).map((e, i) => (
+                        <Cell key={i} fill={e.color} />
                       ))}
                     </Pie>
                     <Tooltip />
@@ -161,9 +181,9 @@ export default function Dashboard() {
                 </ResponsiveContainer>
               </div>
 
-              {/* Bar chart — Orders vs Staff Delays */}
+              {/* Bar chart — Orders vs Staff */}
               <div className="chart-card">
-                <p className="chart-title">Orders vs Staff Delays</p>
+                <p className="chart-title">Orders vs Staff This Week</p>
                 <ResponsiveContainer width="100%" height={180}>
                   <BarChart data={barSummary} barSize={14}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1e7dd" />
@@ -171,7 +191,7 @@ export default function Dashboard() {
                     <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                     <Tooltip cursor={{ fill: "#f7f3ef" }} />
                     <Bar dataKey="Orders" fill={NAVY} radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Delays" fill="#cbd5e1" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="Staff" fill="#cbd5e1" radius={[4, 4, 0, 0]} />
                     <Legend iconType="circle" iconSize={9} />
                   </BarChart>
                 </ResponsiveContainer>

@@ -38,11 +38,15 @@ import {
   updateTableStatus,
   deleteTableAvailability,
   reserveTable,
+  createOrder,
+  getOrderById,
+  getOrdersByUser,
+  getOrdersByRestaurant,
+  getOrdersByRestaurantWithItems,
+  updateOrderStatus,
+  updateOrder,
+  deleteOrder,
 } from "../models/restaurantModel.js";
-
-// ------------------------------
-// Restaurants
-// ------------------------------
 
 export const createRestaurantController = async (req, res) => {
   try {
@@ -134,8 +138,6 @@ export const deleteRestaurantController = async (req, res) => {
   }
 };
 
-
-
 export const addLocationController = async (req, res) => {
   try {
     const location = await addRestaurantLocation({
@@ -209,6 +211,7 @@ export const addMenuItemController = async (req, res) => {
       .json({ success: false, message: "Failed to add menu item" });
   }
 };
+
 export const getMenuItemsController = async (req, res) => {
   try {
     const menuItems = await getMenuItems(req.params.restaurantId);
@@ -237,15 +240,16 @@ export const getMenuItemByIdController = async (req, res) => {
       .json({ success: false, message: "Failed to get menu item" });
   }
 };
+
 export const filterByCategoryController = async(req,res)=>{
   try{
     const menuItem = await filterByCategory(req.params.category);
-if(!menuItem){
-  return res
-  .status(404)
-  .json({success: false, message:"Menu category not found"});
-}
-res.json({success: true, menuItem});
+    if(!menuItem){
+      return res
+      .status(404)
+      .json({success: false, message:"Menu category not found"});
+    }
+    res.json({success: true, menuItem});
   }
   catch(error){
     console.error("Get menu Item error: ",error);
@@ -287,10 +291,6 @@ export const deleteMenuItemController = async (req, res) => {
       .json({ success: false, message: "Failed to delete menu item" });
   }
 };
-
-// ------------------------------
-// Waiters
-// ------------------------------
 
 export const addWaiterController = async (req, res) => {
   try {
@@ -341,9 +341,7 @@ export const updateWaiterController = async (req, res) => {
     res.json({ success: true, waiter });
   } catch (error) {
     console.error("Update waiter error:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to update waiter" });
+    res.status(500).json({ success: false, message: "Failed to update waiter" });
   }
 };
 
@@ -358,15 +356,9 @@ export const deleteWaiterController = async (req, res) => {
     res.json({ success: true, message: "Waiter deleted" });
   } catch (error) {
     console.error("Delete waiter error:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to delete waiter" });
+    res.status(500).json({ success: false, message: "Failed to delete waiter" });
   }
 };
-
-// ------------------------------
-// Waiter Availability
-// ------------------------------
 
 export const addWaiterAvailabilityController = async (req, res) => {
   try {
@@ -467,10 +459,6 @@ export const deleteWaiterAvailabilityController = async (req, res) => {
   }
 };
 
-// ------------------------------
-// Restaurant Tables
-// ------------------------------
-
 export const addTableController = async (req, res) => {
   try {
     const table = await addRestaurantTable({
@@ -538,10 +526,6 @@ export const deleteTableController = async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to delete table" });
   }
 };
-
-// ------------------------------
-// Table Availability
-// ------------------------------
 
 export const addTableAvailabilityController = async (req, res) => {
   try {
@@ -626,7 +610,9 @@ export const deleteTableAvailabilityController = async (req, res) => {
   try {
     const availability = await deleteTableAvailability(req.params.id);
     if (!availability) {
-      return res.status(404).json({ success: false, message: "Table availability not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Table availability not found" });
     }
     res.json({ success: true, message: "Table availability deleted" });
   } catch (error) {
@@ -652,5 +638,98 @@ export const reserveTableController = async (req, res) => {
   } catch (error) {
     console.error("Reserve table error:", error);
     res.status(500).json({ success: false, message: "Failed to reserve table" });
+  }
+};
+
+// ------------------------------
+// ORDERS
+// ------------------------------
+
+export const createOrderController = async (req, res) => {
+  try {
+    const order = await createOrder({
+      ...req.body,
+      user_id: req.user.id,
+      status: "pending"
+    });
+    res.status(201).json({ success: true, order });
+  } catch (error) {
+    console.error("Create order error:", error);
+    res.status(500).json({ success: false, message: "Failed to create order" });
+  }
+};
+
+export const getOrderByIdController = async (req, res) => {
+  try {
+    const order = await getOrderById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+    res.json({ success: true, order });
+  } catch (error) {
+    console.error("Get order error:", error);
+    res.status(500).json({ success: false, message: "Failed to get order" });
+  }
+};
+
+export const getMyOrdersController = async (req, res) => {
+  try {
+    const orders = await getOrdersByUser(req.user.id);
+    res.json({ success: true, orders });
+  } catch (error) {
+    console.error("Get my orders error:", error);
+    res.status(500).json({ success: false, message: "Failed to get orders" });
+  }
+};
+
+export const getRestaurantOrdersController = async (req, res) => {
+  try {
+    const orders = await getOrdersByRestaurantWithItems(
+      req.params.restaurantId,
+      req.query.status
+    );
+    res.json({ success: true, orders });
+  } catch (error) {
+    console.error("Get restaurant orders error:", error);
+    res.status(500).json({ success: false, message: "Failed to get orders" });
+  }
+};
+
+export const updateOrderStatusController = async (req, res) => {
+  try {
+    const order = await updateOrderStatus(req.params.id, req.body.status);
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+    res.json({ success: true, order });
+  } catch (error) {
+    console.error("Update order status error:", error);
+    res.status(500).json({ success: false, message: "Failed to update order status" });
+  }
+};
+
+export const updateOrderController = async (req, res) => {
+  try {
+    const order = await updateOrder(req.params.id, req.body);
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+    res.json({ success: true, order });
+  } catch (error) {
+    console.error("Update order error:", error);
+    res.status(500).json({ success: false, message: "Failed to update order" });
+  }
+};
+
+export const deleteOrderController = async (req, res) => {
+  try {
+    const order = await deleteOrder(req.params.id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+    res.json({ success: true, message: "Order deleted" });
+  } catch (error) {
+    console.error("Delete order error:", error);
+    res.status(500).json({ success: false, message: "Failed to delete order" });
   }
 };

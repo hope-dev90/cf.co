@@ -39,9 +39,9 @@ export const authAPI = {
 
 // ── Restaurants ───────────────────────────────────────
 export const restaurantAPI = {
-  getAll: () => api.get("/restaurants"),
-  getMine: () => api.get("/restaurants/my"),
-  getById: (id) => api.get(`/restaurants/${id}`),
+  getAll: () => api.get("/restaurants").then(r => ({ data: r.data.restaurants || [] })),
+  getMine: () => api.get("/restaurants/my").then(r => ({ data: r.data.restaurants || [] })),
+  getById: (id) => api.get(`/restaurants/${id}`).then(r => ({ data: r.data.restaurant })),
   create: (data) => api.post("/restaurants", data),
   update: (id, data) => api.put(`/restaurants/${id}`, data),
   delete: (id) => api.delete(`/restaurants/${id}`),
@@ -49,7 +49,7 @@ export const restaurantAPI = {
 
 // ── Menu ──────────────────────────────────────────────
 export const menuAPI = {
-  getItems: (restaurantId) => api.get(`/restaurants/${restaurantId}/menu`),
+  getItems: (restaurantId) => api.get(`/restaurants/${restaurantId}/menu`).then(r => ({ data: r.data.menuItems || [] })),
   addItem: (restaurantId, data) => api.post(`/restaurants/${restaurantId}/menu`, data),
   updateItem: (id, data) => api.put(`/restaurants/menu/${id}`, data),
   deleteItem: (id) => api.delete(`/restaurants/menu/${id}`),
@@ -57,15 +57,15 @@ export const menuAPI = {
 
 // ── Tables ────────────────────────────────────────────
 export const tableAPI = {
-  getTables: (restaurantId) => api.get(`/restaurants/${restaurantId}/tables`),
+  getTables: (restaurantId) => api.get(`/restaurants/${restaurantId}/tables`).then(r => ({ data: r.data.tables || [] })),
   addTable: (restaurantId, data) => api.post(`/restaurants/${restaurantId}/tables`, data),
-  getAvailability: (tableId) => api.get(`/restaurants/tables/${tableId}/availability`),
-  reserve: (availabilityId) => api.patch(`/restaurants/tables/availability/${availabilityId}/reserve`),
+  getAvailability: (tableId) => api.get(`/restaurants/tables/${tableId}/availability`).then(r => ({ data: r.data.availability || [] })),
+  reserve: (availabilityId, data) => api.patch(`/restaurants/tables/availability/${availabilityId}/reserve`, data),
 };
 
 // ── Waiters ───────────────────────────────────────────
 export const waiterAPI = {
-  getWaiters: (restaurantId) => api.get(`/restaurants/${restaurantId}/waiters`),
+  getWaiters: (restaurantId) => api.get(`/restaurants/${restaurantId}/waiters`).then(r => ({ data: r.data.waiters || [] })),
   addWaiter: (restaurantId, data) => api.post(`/restaurants/${restaurantId}/waiters`, data),
   updateWaiter: (id, data) => api.put(`/restaurants/waiters/${id}`, data),
   deleteWaiter: (id) => api.delete(`/restaurants/waiters/${id}`),
