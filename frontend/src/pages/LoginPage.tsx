@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { Loader2 } from "lucide-react";
+import { GoogleLogin } from "@react-oauth/google";
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -18,7 +19,7 @@ const LoginPage: React.FC = () => {
 
     try {
       await signIn(email, password);
-    
+
       navigate(email === "owner@example.com" ? "/owner" : "/dashboard");
     } catch (err) {
       setError(
