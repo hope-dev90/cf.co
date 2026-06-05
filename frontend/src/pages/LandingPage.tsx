@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import {
   UtensilsCrossed,
   Search,
@@ -12,8 +12,8 @@ import {
   Facebook,
   Instagram,
   Twitter,
-} from 'lucide-react';
-import { useAuth } from '../hooks/useAuth';
+} from "lucide-react";
+import { useAuth } from "../hooks/useAuth";
 
 interface NavLinkProps {
   href: string;
@@ -46,83 +46,92 @@ export default function LandingPage() {
       setScrolled(window.scrollY > 20);
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const navLinks: NavLinkProps[] = [
-    { href: '#restaurants', label: 'Restaurants' },
-    { href: '#how-it-works', label: 'How It Works' },
-    { href: '#about', label: 'About' },
+    { href: "#restaurants", label: "Restaurants" },
+    { href: "#how-it-works", label: "How It Works" },
+    { href: "#about", label: "About" },
   ];
 
   const restaurants: RestaurantCard[] = [
     {
       id: 1,
-      name: 'The Gourmet Kitchen',
-      cuisine: 'Modern European',
+      name: "The Gourmet Kitchen",
+      cuisine: "Modern European",
       rating: 4.8,
-      image: 'https://images.pexels.com/photos/1059905/pexels-photo-1059905.jpeg?auto=compress&cs=tinysrgb&w=400',
+      image:
+        "https://images.pexels.com/photos/1059905/pexels-photo-1059905.jpeg?auto=compress&cs=tinysrgb&w=400",
     },
     {
       id: 2,
-      name: 'Spice Haven',
-      cuisine: 'Indian & Asian',
+      name: "Spice Haven",
+      cuisine: "Indian & Asian",
       rating: 4.7,
-      image: 'https://images.pexels.com/photos/1410235/pexels-photo-1410235.jpeg?auto=compress&cs=tinysrgb&w=400',
+      image:
+        "https://images.pexels.com/photos/1410235/pexels-photo-1410235.jpeg?auto=compress&cs=tinysrgb&w=400",
     },
     {
       id: 3,
-      name: 'La Pasta House',
-      cuisine: 'Italian',
+      name: "La Pasta House",
+      cuisine: "Italian",
       rating: 4.9,
-      image: 'https://images.pexels.com/photos/1092730/pexels-photo-1092730.jpeg?auto=compress&cs=tinysrgb&w=400',
+      image:
+        "https://images.pexels.com/photos/1092730/pexels-photo-1092730.jpeg?auto=compress&cs=tinysrgb&w=400",
     },
     {
       id: 4,
-      name: 'Flame & Co',
-      cuisine: 'Grilled & BBQ',
+      name: "Flame & Co",
+      cuisine: "Grilled & BBQ",
       rating: 4.6,
-      image: 'https://images.pexels.com/photos/1624487/pexels-photo-1624487.jpeg?auto=compress&cs=tinysrgb&w=400',
+      image:
+        "https://images.pexels.com/photos/1624487/pexels-photo-1624487.jpeg?auto=compress&cs=tinysrgb&w=400",
     },
   ];
 
   const testimonials: TestimonialCard[] = [
     {
       id: 1,
-      quote: 'Feast has completely changed how I order food. The selection is incredible and delivery is always on time. It\'s now my go-to app!',
-      name: 'Sarah Mitchell',
-      role: 'Food Enthusiast',
-      initial: 'S',
+      quote:
+        "CF Company has completely changed how I order food. The selection is incredible and delivery is always on time. It's now my go-to app!",
+      name: "Sarah Mitchell",
+      role: "Food Enthusiast",
+      initial: "S",
     },
     {
       id: 2,
-      quote: 'As a restaurant owner, partnering with Feast has significantly boosted our orders and customer reach. The platform is intuitive and reliable.',
-      name: 'James Chen',
-      role: 'Restaurant Owner',
-      initial: 'J',
+      quote:
+        "As a restaurant owner, partnering with CF Company has significantly boosted our orders and customer reach. The platform is intuitive and reliable.",
+      name: "James Chen",
+      role: "Restaurant Owner",
+      initial: "J",
     },
     {
       id: 3,
-      quote: 'The variety of cuisines available is amazing. I love discovering new restaurants and my favorite dishes are always just a few taps away.',
-      name: 'Emma Rodriguez',
-      role: 'Regular Customer',
-      initial: 'E',
+      quote:
+        "The variety of cuisines available is amazing. I love discovering new restaurants and my favorite dishes are always just a few taps away.",
+      name: "Emma Rodriguez",
+      role: "Regular Customer",
+      initial: "E",
     },
   ];
 
   return (
     <div className="min-h-screen bg-white">
       {/* Navbar */}
-      <nav className={`fixed w-full top-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white shadow-lg' : 'bg-white'}`}>
+      <nav
+        className={`fixed w-full top-0 z-50 transition-all duration-300 ${scrolled ? "bg-white shadow-lg" : "bg-white"}`}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 group">
-              <div className="bg-gradient-to-br from-[#e8722a] to-[#d4631f] p-2 rounded-lg group-hover:shadow-lg transition-shadow duration-300">
-                <UtensilsCrossed size={24} className="text-white" />
-              </div>
-              <span className="text-2xl font-bold text-[#1a1a2e] hidden sm:block">Feast</span>
+              <img src="/logo.png" alt="CF Company" className="h-10 w-auto" />
+              <span className="text-2xl font-bold text-[#1a1a2e] hidden sm:block">
+                CF Company
+              </span>
             </Link>
 
             {/* Desktop Navigation */}
@@ -143,7 +152,9 @@ export default function LandingPage() {
               <div className="hidden md:flex gap-3">
                 {user ? (
                   <>
-                    <span className="text-sm text-[#4a4a68] py-2 px-4">{user.email}</span>
+                    <span className="text-sm text-[#4a4a68] py-2 px-4">
+                      {user.email}
+                    </span>
                     <Link
                       to="/dashboard"
                       className="px-6 py-2 bg-[#e8722a] hover:bg-[#d4631f] text-white font-medium rounded-lg transition-colors duration-300"
@@ -240,7 +251,9 @@ export default function LandingPage() {
                   Delicious Food, Delivered Fast
                 </h1>
                 <p className="text-lg md:text-xl text-[#4a4a68] leading-relaxed">
-                  Connect with your favorite restaurants and discover new culinary experiences. Fresh meals delivered to your doorstep in minutes.
+                  Connect with your favorite restaurants and discover new
+                  culinary experiences. Fresh meals delivered to your doorstep
+                  in minutes.
                 </p>
               </div>
 
@@ -265,15 +278,21 @@ export default function LandingPage() {
               <div className="flex flex-wrap gap-8 pt-8 border-t border-gray-200">
                 <div>
                   <p className="text-3xl font-bold text-[#e8722a]">500+</p>
-                  <p className="text-sm text-[#4a4a68] font-medium">Partner Restaurants</p>
+                  <p className="text-sm text-[#4a4a68] font-medium">
+                    Partner Restaurants
+                  </p>
                 </div>
                 <div>
                   <p className="text-3xl font-bold text-[#e8722a]">50K+</p>
-                  <p className="text-sm text-[#4a4a68] font-medium">Orders Delivered</p>
+                  <p className="text-sm text-[#4a4a68] font-medium">
+                    Orders Delivered
+                  </p>
                 </div>
                 <div>
                   <p className="text-3xl font-bold text-[#e8722a]">4.8/5</p>
-                  <p className="text-sm text-[#4a4a68] font-medium">Average Rating</p>
+                  <p className="text-sm text-[#4a4a68] font-medium">
+                    Average Rating
+                  </p>
                 </div>
               </div>
             </div>
@@ -295,7 +314,9 @@ export default function LandingPage() {
       <section id="how-it-works" className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-[#1a1a2e] mb-4">How It Works</h2>
+            <h2 className="text-4xl md:text-5xl font-bold text-[#1a1a2e] mb-4">
+              How It Works
+            </h2>
             <p className="text-lg text-[#4a4a68] max-w-2xl mx-auto">
               Three simple steps to get your favorite food delivered to you
             </p>
@@ -308,9 +329,13 @@ export default function LandingPage() {
                 <div className="w-16 h-16 bg-gradient-to-br from-[#e8722a] to-[#d4631f] rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
                   <Search size={32} className="text-white" />
                 </div>
-                <h3 className="text-2xl font-bold text-[#1a1a2e] mb-3">Browse Restaurants</h3>
+                <h3 className="text-2xl font-bold text-[#1a1a2e] mb-3">
+                  Browse Restaurants
+                </h3>
                 <p className="text-[#4a4a68] leading-relaxed">
-                  Explore hundreds of restaurants in your area. Filter by cuisine, rating, delivery time, and more to find exactly what you crave.
+                  Explore hundreds of restaurants in your area. Filter by
+                  cuisine, rating, delivery time, and more to find exactly what
+                  you crave.
                 </p>
               </div>
               {/* Connector */}
@@ -323,9 +348,13 @@ export default function LandingPage() {
                 <div className="w-16 h-16 bg-gradient-to-br from-[#e8722a] to-[#d4631f] rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
                   <ShoppingCart size={32} className="text-white" />
                 </div>
-                <h3 className="text-2xl font-bold text-[#1a1a2e] mb-3">Place Your Order</h3>
+                <h3 className="text-2xl font-bold text-[#1a1a2e] mb-3">
+                  Place Your Order
+                </h3>
                 <p className="text-[#4a4a68] leading-relaxed">
-                  Customize your meal to your preferences. Add special instructions, choose your favorite items, and pay securely in seconds.
+                  Customize your meal to your preferences. Add special
+                  instructions, choose your favorite items, and pay securely in
+                  seconds.
                 </p>
               </div>
               {/* Connector */}
@@ -338,9 +367,12 @@ export default function LandingPage() {
                 <div className="w-16 h-16 bg-gradient-to-br from-[#e8722a] to-[#d4631f] rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
                   <Bike size={32} className="text-white" />
                 </div>
-                <h3 className="text-2xl font-bold text-[#1a1a2e] mb-3">Enjoy Delivery</h3>
+                <h3 className="text-2xl font-bold text-[#1a1a2e] mb-3">
+                  Enjoy Delivery
+                </h3>
                 <p className="text-[#4a4a68] leading-relaxed">
-                  Track your order in real-time and receive hot, fresh food delivered quickly. Sit back, relax, and enjoy your meal.
+                  Track your order in real-time and receive hot, fresh food
+                  delivered quickly. Sit back, relax, and enjoy your meal.
                 </p>
               </div>
             </div>
@@ -353,15 +385,22 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center mb-16">
             <div>
-              <h2 className="text-4xl md:text-5xl font-bold text-[#1a1a2e] mb-4">Featured Restaurants</h2>
-              <p className="text-lg text-[#4a4a68]">Discover some of our most popular partners</p>
+              <h2 className="text-4xl md:text-5xl font-bold text-[#1a1a2e] mb-4">
+                Featured Restaurants
+              </h2>
+              <p className="text-lg text-[#4a4a68]">
+                Discover some of our most popular partners
+              </p>
             </div>
             <Link
               to="/restaurants"
               className="hidden md:flex items-center gap-2 px-6 py-3 text-[#e8722a] hover:text-[#d4631f] font-bold transition-colors duration-300 group"
             >
               View All
-              <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform duration-300" />
+              <ArrowRight
+                size={20}
+                className="group-hover:translate-x-1 transition-transform duration-300"
+              />
             </Link>
           </div>
 
@@ -383,8 +422,12 @@ export default function LandingPage() {
 
                 {/* Content */}
                 <div className="p-5">
-                  <h3 className="text-xl font-bold text-[#1a1a2e] mb-1 line-clamp-1">{restaurant.name}</h3>
-                  <p className="text-sm text-[#4a4a68] mb-4">{restaurant.cuisine}</p>
+                  <h3 className="text-xl font-bold text-[#1a1a2e] mb-1 line-clamp-1">
+                    {restaurant.name}
+                  </h3>
+                  <p className="text-sm text-[#4a4a68] mb-4">
+                    {restaurant.cuisine}
+                  </p>
 
                   {/* Rating */}
                   <div className="flex items-center gap-2 pt-4 border-t border-gray-100">
@@ -393,11 +436,17 @@ export default function LandingPage() {
                         <Star
                           key={i}
                           size={16}
-                          className={i < Math.floor(restaurant.rating) ? 'fill-[#e8722a] text-[#e8722a]' : 'text-gray-300'}
+                          className={
+                            i < Math.floor(restaurant.rating)
+                              ? "fill-[#e8722a] text-[#e8722a]"
+                              : "text-gray-300"
+                          }
                         />
                       ))}
                     </div>
-                    <span className="text-sm font-bold text-[#1a1a2e]">{restaurant.rating}</span>
+                    <span className="text-sm font-bold text-[#1a1a2e]">
+                      {restaurant.rating}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -422,23 +471,39 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             {/* Stat 1 */}
             <div className="text-center space-y-2">
-              <p className="text-5xl md:text-6xl font-bold text-[#e8722a]">500+</p>
+              <p className="text-5xl md:text-6xl font-bold text-[#e8722a]">
+                500+
+              </p>
               <p className="text-xl text-gray-300 font-medium">Restaurants</p>
-              <p className="text-sm text-gray-400">Partner restaurants in your city</p>
+              <p className="text-sm text-gray-400">
+                Partner restaurants in your city
+              </p>
             </div>
 
             {/* Stat 2 */}
             <div className="text-center space-y-2">
-              <p className="text-5xl md:text-6xl font-bold text-[#e8722a]">10K+</p>
-              <p className="text-xl text-gray-300 font-medium">Happy Customers</p>
-              <p className="text-sm text-gray-400">Satisfied users trusting Feast</p>
+              <p className="text-5xl md:text-6xl font-bold text-[#e8722a]">
+                10K+
+              </p>
+              <p className="text-xl text-gray-300 font-medium">
+                Happy Customers
+              </p>
+              <p className="text-sm text-gray-400">
+                Satisfied users trusting CF Company
+              </p>
             </div>
 
             {/* Stat 3 */}
             <div className="text-center space-y-2">
-              <p className="text-5xl md:text-6xl font-bold text-[#e8722a]">50K+</p>
-              <p className="text-xl text-gray-300 font-medium">Orders Delivered</p>
-              <p className="text-sm text-gray-400">Successful deliveries completed</p>
+              <p className="text-5xl md:text-6xl font-bold text-[#e8722a]">
+                50K+
+              </p>
+              <p className="text-xl text-gray-300 font-medium">
+                Orders Delivered
+              </p>
+              <p className="text-sm text-gray-400">
+                Successful deliveries completed
+              </p>
             </div>
           </div>
         </div>
@@ -448,9 +513,12 @@ export default function LandingPage() {
       <section id="about" className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-[#1a1a2e] mb-4">What Our Users Say</h2>
+            <h2 className="text-4xl md:text-5xl font-bold text-[#1a1a2e] mb-4">
+              What Our Users Say
+            </h2>
             <p className="text-lg text-[#4a4a68] max-w-2xl mx-auto">
-              Join thousands of happy customers who trust Feast for their daily meals
+              Join thousands of happy customers who trust CF Company for their
+              daily meals
             </p>
           </div>
 
@@ -468,10 +536,14 @@ export default function LandingPage() {
                 {/* Author */}
                 <div className="flex items-center gap-4 pt-6 border-t border-gray-200">
                   <div className="w-12 h-12 bg-gradient-to-br from-[#e8722a] to-[#d4631f] rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-white font-bold">{testimonial.initial}</span>
+                    <span className="text-white font-bold">
+                      {testimonial.initial}
+                    </span>
                   </div>
                   <div>
-                    <p className="font-bold text-[#1a1a2e]">{testimonial.name}</p>
+                    <p className="font-bold text-[#1a1a2e]">
+                      {testimonial.name}
+                    </p>
                     <p className="text-sm text-[#4a4a68]">{testimonial.role}</p>
                   </div>
                 </div>
@@ -484,9 +556,13 @@ export default function LandingPage() {
       {/* CTA Section */}
       <section className="py-16 md:py-24 bg-gradient-to-r from-[#e8722a] to-[#d4631f]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">Ready to Order?</h2>
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+            Ready to Order?
+          </h2>
           <p className="text-lg md:text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-            Discover amazing restaurants and get your favorite meals delivered hot and fresh. Sign up today and enjoy special offers on your first order!
+            Discover amazing restaurants and get your favorite meals delivered
+            hot and fresh. Sign up today and enjoy special offers on your first
+            order!
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -514,13 +590,14 @@ export default function LandingPage() {
             {/* Brand */}
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <div className="bg-gradient-to-br from-[#e8722a] to-[#d4631f] p-2 rounded-lg">
-                  <UtensilsCrossed size={20} className="text-white" />
-                </div>
-                <span className="text-2xl font-bold text-white">Feast</span>
+                <img src="/logo.png" alt="CF Company" className="h-8 w-auto" />
+                <span className="text-2xl font-bold text-white">
+                  CF Company
+                </span>
               </div>
               <p className="text-gray-400 text-sm leading-relaxed">
-                Connecting food lovers with amazing restaurants. Fresh, fast, and delicious.
+                Connecting food lovers with amazing restaurants. Fresh, fast,
+                and delicious.
               </p>
             </div>
 
@@ -529,22 +606,34 @@ export default function LandingPage() {
               <h3 className="text-white font-bold mb-4">Company</h3>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <a href="#about" className="hover:text-[#e8722a] transition-colors duration-300">
+                  <a
+                    href="#about"
+                    className="hover:text-[#e8722a] transition-colors duration-300"
+                  >
                     About Us
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-[#e8722a] transition-colors duration-300">
+                  <a
+                    href="#"
+                    className="hover:text-[#e8722a] transition-colors duration-300"
+                  >
                     Careers
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-[#e8722a] transition-colors duration-300">
+                  <a
+                    href="#"
+                    className="hover:text-[#e8722a] transition-colors duration-300"
+                  >
                     Blog
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-[#e8722a] transition-colors duration-300">
+                  <a
+                    href="#"
+                    className="hover:text-[#e8722a] transition-colors duration-300"
+                  >
                     Press
                   </a>
                 </li>
@@ -556,22 +645,34 @@ export default function LandingPage() {
               <h3 className="text-white font-bold mb-4">Support</h3>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <a href="#" className="hover:text-[#e8722a] transition-colors duration-300">
+                  <a
+                    href="#"
+                    className="hover:text-[#e8722a] transition-colors duration-300"
+                  >
                     Help Center
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-[#e8722a] transition-colors duration-300">
+                  <a
+                    href="#"
+                    className="hover:text-[#e8722a] transition-colors duration-300"
+                  >
                     Contact Us
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-[#e8722a] transition-colors duration-300">
+                  <a
+                    href="#"
+                    className="hover:text-[#e8722a] transition-colors duration-300"
+                  >
                     Safety
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-[#e8722a] transition-colors duration-300">
+                  <a
+                    href="#"
+                    className="hover:text-[#e8722a] transition-colors duration-300"
+                  >
                     Terms of Service
                   </a>
                 </li>
@@ -610,15 +711,24 @@ export default function LandingPage() {
           {/* Divider */}
           <div className="border-t border-gray-700 pt-8">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-400">
-              <p>&copy; 2024 Feast. All rights reserved.</p>
+              <p>&copy; 2024 CF Company. All rights reserved.</p>
               <div className="flex gap-6">
-                <a href="#" className="hover:text-[#e8722a] transition-colors duration-300">
+                <a
+                  href="#"
+                  className="hover:text-[#e8722a] transition-colors duration-300"
+                >
                   Privacy Policy
                 </a>
-                <a href="#" className="hover:text-[#e8722a] transition-colors duration-300">
+                <a
+                  href="#"
+                  className="hover:text-[#e8722a] transition-colors duration-300"
+                >
                   Terms & Conditions
                 </a>
-                <a href="#" className="hover:text-[#e8722a] transition-colors duration-300">
+                <a
+                  href="#"
+                  className="hover:text-[#e8722a] transition-colors duration-300"
+                >
                   Cookie Policy
                 </a>
               </div>

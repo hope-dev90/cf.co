@@ -4,7 +4,6 @@ import {
   ShoppingBag,
   User,
   LogOut,
-  UtensilsCrossed,
   Star,
   Clock,
   MapPin,
@@ -13,7 +12,6 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { supabase } from '../lib/supabase';
 
 // Types
 interface Restaurant {
@@ -369,7 +367,7 @@ const UserDashboard: React.FC = () => {
           <div className="p-2 rounded-lg" style={{ backgroundColor: '#e8722a' }}>
             <UtensilsCrossed size={24} color="white" />
           </div>
-          <span className="text-xl font-bold text-white">Feast</span>
+          <span className="text-xl font-bold text-white">CF Company</span>
         </div>
 
         {/* User Info */}

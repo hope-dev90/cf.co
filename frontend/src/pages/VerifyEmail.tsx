@@ -46,7 +46,7 @@ export default function VerifyEmail() {
       <div className="hidden lg:flex lg:w-1/2 items-center justify-center bg-gradient-to-br from-[#faf5f0] to-[#f5ede4]">
         <img
           src="/image.png"
-          alt="Feast Welcome"
+          alt="CF Company Welcome"
           className="w-full h-full object-cover"
         />
       </div>

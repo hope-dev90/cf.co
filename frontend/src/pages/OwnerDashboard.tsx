@@ -312,7 +312,7 @@ const OwnerDashboard: React.FC = () => {
 
   // Settings state
   const [restaurantInfo, setRestaurantInfo] = useState<RestaurantInfo>({
-    name: 'The Feast Kitchen',
+    name: 'The CF Company Kitchen',
     description: 'Contemporary fine dining with a focus on seasonal ingredients and innovative techniques',
     cuisineType: 'Modern European',
     phone: '+1 (555) 123-4567',
@@ -639,7 +639,7 @@ const OwnerDashboard: React.FC = () => {
             <div className="p-2 bg-[#e8722a] rounded-lg">
               <UtensilsCrossed className="w-6 h-6 text-white" />
             </div>
-            <h1 className="text-2xl font-bold">Feast</h1>
+            <h1 className="text-2xl font-bold">CF Company</h1>
           </div>
 
           {/* Owner Badge */}

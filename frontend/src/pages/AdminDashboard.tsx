@@ -519,7 +519,7 @@ const OrdersTab: React.FC = () => {
 // Settings Tab
 const SettingsTab: React.FC = () => {
   const [settings, setSettings] = useState({
-    platformName: 'Feast',
+    platformName: 'CF Company',
     commissionRate: 15,
     supportEmail: 'support@feast.com',
   });
@@ -654,7 +654,7 @@ const AdminDashboard: React.FC = () => {
         <div className="p-6 border-b border-gray-700">
           <div className="flex items-center gap-2 mb-6">
             <UtensilsCrossed size={28} className="text-[#e8722a]" />
-            <h1 className="text-2xl font-bold">Feast</h1>
+            <h1 className="text-2xl font-bold">CF Company</h1>
           </div>
 
           <div className="flex items-center gap-2 bg-[#e8722a] bg-opacity-20 px-3 py-2 rounded-lg border border-[#e8722a] border-opacity-30">

@@ -29,7 +29,7 @@ export default function LoginPage() {
       <div className="hidden lg:flex lg:w-1/2 items-center justify-center bg-gradient-to-br from-[#faf5f0] to-[#f5ede4]">
         <img
           src="/image.png"
-          alt="Feast Welcome"
+          alt="CF Company Welcome"
           className="w-full h-full object-cover"
         />
       </div>
@@ -40,7 +40,7 @@ export default function LoginPage() {
           {/* Welcome Header */}
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-[#1a1a2e] mb-2">Welcome,</h1>
-            <p className="text-[#4a4a68]">Sign in to your Feast account</p>
+            <p className="text-[#4a4a68]">Sign in to your CF Company account</p>
           </div>
 
           {/* Demo Info */}

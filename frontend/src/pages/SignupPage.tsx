@@ -85,7 +85,7 @@ export default function SignupPage() {
       <div className="hidden lg:flex lg:w-1/2 items-center justify-center bg-gradient-to-br from-[#faf5f0] to-[#f5ede4]">
         <img
           src="/image.png"
-          alt="Feast Welcome"
+          alt="CF Company Welcome"
           className="w-full h-full object-cover"
         />
       </div>
@@ -96,7 +96,7 @@ export default function SignupPage() {
           {/* Welcome Header */}
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-[#1a1a2e] mb-2">
-              Join Feast,
+              Join CF Company,
             </h1>
             <p className="text-[#4a4a68]">
               Create your account and get started
