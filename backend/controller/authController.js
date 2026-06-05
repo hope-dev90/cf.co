@@ -141,6 +141,10 @@ const getDatabaseErrorMessage = (error) => {
     return "Email already exists";
   }
 
+  if (error.code === "23514") {
+    return "Invalid role. Run npm run db:setup to update the database schema, then try again.";
+  }
+
   return null;
 };
 export const register = async (req, res) => {
@@ -187,12 +191,28 @@ export const register = async (req, res) => {
     const otp = generateOtp();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
     await saveOtp(email, otp, expiresAt);
-    await sendOtpEmail({ to: email, otp, purpose: "verify your email" });
+
+    let emailSent = false;
+    try {
+      emailSent = await sendOtpEmail({
+        to: email,
+        otp,
+        purpose: "verify your email",
+      });
+    } catch (emailError) {
+      console.error("register email error:", emailError);
+    }
+
+    if (!emailSent) {
+      await markEmailVerified(email);
+      await clearOtp(email);
+    }
 
     return res.status(201).json({
       success: true,
-      message:
-        "Registration successful! Check your email for the verification code.",
+      message: emailSent
+        ? "Registration successful! Check your email for the verification code."
+        : "Registration successful! Email is not configured, so your account is ready to use. You can sign in now.",
       user: {
         id: user.id,
         name: user.name,

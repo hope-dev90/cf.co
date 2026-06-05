@@ -28,7 +28,7 @@ interface AuthContextType {
     password: string,
     fullName: string,
     role: SignupRole,
-  ) => Promise<void>;
+  ) => Promise<{ message: string }>;
   signOut: () => void;
   logout: () => void; // Alias for signOut to maintain compatibility
   googleSignIn: (credential: string, role?: SignupRole) => Promise<void>;
@@ -40,7 +40,7 @@ const AuthContext = createContext<AuthContextType>({
   token: null,
   loading: false,
   signIn: async () => {},
-  signUp: async () => {},
+  signUp: async () => ({ message: "" }),
   signOut: () => {},
   logout: () => {},
   googleSignIn: async () => {},
@@ -104,10 +104,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Map roles to backend roles
       const backendRole = role === "restaurant_owner" ? "restaurateur" : role;
 
-      await authApi.register(fullName, email, password, backendRole);
+      const data = await authApi.register(
+        fullName,
+        email,
+        password,
+        backendRole,
+      );
 
-      // After registration, user needs to verify email, so don't sign in automatically
-      // Instead, just let them know to check email
+      return { message: data.message };
     } catch (error) {
       throw error;
     } finally {

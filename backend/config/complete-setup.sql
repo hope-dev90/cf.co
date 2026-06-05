@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
   name VARCHAR(255) NOT NULL,
   email VARCHAR(255) UNIQUE NOT NULL,
   password VARCHAR(255),
+  google_id VARCHAR(255) UNIQUE,
   role VARCHAR(50) NOT NULL CHECK (role IN ('client', 'restaurateur', 'admin')),
   is_verified BOOLEAN DEFAULT false,
   otp VARCHAR(6),

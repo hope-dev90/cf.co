@@ -1,5 +1,8 @@
 import nodemailer from 'nodemailer';
 
+export const isEmailConfigured = () =>
+    Boolean(process.env.EMAIL_USER && process.env.EMAIL_PASS);
+
 const createTransporter = () => {
     const host = process.env.EMAIL_HOST;
     const port = Number(process.env.EMAIL_PORT || 587);
@@ -26,8 +29,8 @@ const createTransporter = () => {
 };
 
 export const sendEmail = async ({ to, subject, text, html }) => {
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-        throw new Error('EMAIL_USER and EMAIL_PASS are required to send email');
+    if (!isEmailConfigured()) {
+        return false;
     }
 
     const transporter = createTransporter();
@@ -39,9 +42,16 @@ export const sendEmail = async ({ to, subject, text, html }) => {
         text,
         html
     });
+
+    return true;
 };
 
 export const sendOtpEmail = async ({ to, otp, purpose = 'verify your email' }) => {
+    if (!isEmailConfigured()) {
+        console.log(`[DEV] OTP for ${to} (${purpose}): ${otp}`);
+        return false;
+    }
+
     await sendEmail({
         to,
         subject: 'C&F.co OTP code',
@@ -92,4 +102,6 @@ export const sendOtpEmail = async ({ to, otp, purpose = 'verify your email' }) =
 </div>
         `
     });
+
+    return true;
 };
