@@ -40,6 +40,12 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     }),
+    
+  googleLogin: (credential: string) => 
+    apiClient('/auth/google', {
+      method: 'POST',
+      body: JSON.stringify({ credential }),
+    }),
   
   verifyEmail: (email: string, otp: string) => 
     apiClient('/auth/verify-email', {

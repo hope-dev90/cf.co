@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { sendOtpEmail } from "../utils/email.js";
+import { OAuth2Client } from "google-auth-library";
 import {
   createUser,
   findUserByEmail,
@@ -22,6 +23,75 @@ const generateToken = (id, role) => {
 };
 const generateOtp = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+// Initialize Google OAuth client
+const googleClient = new OAuth2Client(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  "postmessage",
+);
+
+export const googleLogin = async (req, res) => {
+  const { credential } = req.body;
+
+  try {
+    if (!credential) {
+      return res.status(400).json({
+        success: false,
+        message: "Google credential is required",
+      });
+    }
+
+    // Verify Google token
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    const email = payload.email;
+    const name = payload.name;
+
+    // Check if user exists
+    let user = await findUserByEmail(email);
+
+    if (!user) {
+      // Create new user if doesn't exist
+      user = await createUser({
+        name,
+        email,
+        password: null, // No password for Google users
+        role: "client", // Default role for Google signups
+      });
+
+      // Mark email as verified since Google already verified it
+      await markEmailVerified(email);
+    } else if (!user.is_verified) {
+      // If user exists but not verified, mark as verified
+      await markEmailVerified(email);
+    }
+
+    const token = generateToken(user.id, user.role);
+
+    return res.status(200).json({
+      success: true,
+      message: "Google login successful",
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    console.error("googleLogin error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Google login failed",
+    });
+  }
 };
 const getDatabaseErrorMessage = (error) => {
   if (error.code === "42P01") {
@@ -49,10 +119,16 @@ export const register = async (req, res) => {
       });
     }
 
-    if (!["client", "restaurateur"].includes(role)) {
+    // Map "restaurant_owner" to "restaurateur" for consistency
+    let normalizedRole = role;
+    if (role === "restaurant_owner") {
+      normalizedRole = "restaurateur";
+    }
+
+    if (!["client", "restaurateur"].includes(normalizedRole)) {
       return res.status(400).json({
         success: false,
-        message: "Role must be client, restaurateur",
+        message: "Role must be client or restaurateur",
       });
     }
 
@@ -66,7 +142,12 @@ export const register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await createUser({ name, email, password: hashedPassword, role });
+    const user = await createUser({
+      name,
+      email,
+      password: hashedPassword,
+      role: normalizedRole,
+    });
 
     const otp = generateOtp();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
@@ -75,8 +156,14 @@ export const register = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: "Registration successful! Check your email for the verification code.",
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      message:
+        "Registration successful! Check your email for the verification code.",
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
     });
   } catch (error) {
     console.error("register error:", error);
@@ -151,7 +238,9 @@ export const login = async (req, res) => {
     }
 
     if (!user.is_verified) {
-      return res.status(400).json({ success: false, message: "Please verify your email first" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Please verify your email first" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);

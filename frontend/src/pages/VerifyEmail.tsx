@@ -1,82 +1,68 @@
-import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { Loader2, ArrowLeft } from "lucide-react";
+import React, { useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import { authApi } from "../lib/api";
 
-export default function VerifyEmail() {
-  const navigate = useNavigate();
+const VerifyEmail: React.FC = () => {
   const location = useLocation();
-
-  // Get email from location state if available
-  const [email, setEmail] = useState(location.state?.email || "");
+  const navigate = useNavigate();
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+
+  // Get email from navigation state
+  const email = location.state?.email || "";
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setSuccess("");
-
-    if (!email || !otp) {
-      setError("Please enter your email and OTP");
-      return;
-    }
+    setLoading(true);
 
     try {
-      setLoading(true);
       await authApi.verifyEmail(email, otp);
-      setSuccess("Email verified successfully!");
-
-      // After a short delay, redirect to login
-      setTimeout(() => {
-        navigate("/login");
-      }, 2000);
+      // Redirect to login after successful verification
+      navigate("/login");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      setError(err instanceof Error ? err.message : "Verification failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    setError("");
+    setLoading(true);
+
+    try {
+      // In a real app, you'd call an API to resend the OTP
+      alert("OTP resent!");
+    } catch (err) {
+      setError("Failed to resend OTP");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex bg-white">
-      {/* Left side - Image */}
-      <div className="hidden lg:flex lg:w-1/2 items-center justify-center bg-gradient-to-br from-[#faf5f0] to-[#f5ede4] overflow-hidden">
+    <div className="min-h-screen flex bg-[#fef8f3]">
+      {/* RIGHT */}
+      <div className="hidden lg:flex lg:w-1/2 items-center justify-center bg-[#1a1a2e] text-white items-center justify-center overflow-hidden">
         <img
-          src="/image.png"
+          src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&h=1200&fit=crop"
           alt="CF Company Welcome"
-          className="w-full h-full object-contain max-h-screen"
+          className="w-full h-full object-cover"
         />
       </div>
 
-      {/* Right side - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12">
+      {/* LEFT */}
+      <div className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">
-          {/* Back Button */}
-          <button
-            onClick={() => navigate("/login")}
-            className="flex items-center gap-2 text-[#4a4a68] hover:text-[#e8722a] mb-8 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            Back to Login
-          </button>
-
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-[#1a1a2e] mb-2">
-              Verify Email
-            </h1>
-            <p className="text-[#4a4a68]">Enter the OTP sent to your email</p>
-          </div>
-
-          {/* Success message */}
-          {success && (
-            <div className="mb-6 p-4 rounded-lg bg-green-50 border border-green-200">
-              <p className="text-sm font-medium text-green-700">{success}</p>
-            </div>
-          )}
+          <h1 className="text-4xl font-bold mb-2 text-[#00000b]">
+            Verify your email
+          </h1>
+          <p className="mb-6 text-gray-600">
+            We sent a verification code to {email}
+          </p>
 
           {/* Error message */}
           {error && (
@@ -85,59 +71,54 @@ export default function VerifyEmail() {
             </div>
           )}
 
-          {/* Form */}
-          <form onSubmit={handleVerify} className="space-y-5">
-            {/* Email */}
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-base font-semibold text-[#1a1a2e] mb-3"
-              >
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full px-4 py-3 rounded-xl border-2 border-[#e0e0e8] bg-[#f9f9fc] text-[#1a1a2e] placeholder-[#b0b0c8] transition-all focus:outline-none focus:border-[#e8722a] focus:bg-white"
-                required
-              />
-            </div>
-
+          <form onSubmit={handleVerify} className="space-y-4">
             {/* OTP */}
-            <div>
-              <label
-                htmlFor="otp"
-                className="block text-base font-semibold text-[#1a1a2e] mb-3"
-              >
-                OTP Code
-              </label>
-              <input
-                id="otp"
-                type="text"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                placeholder="123456"
-                maxLength={6}
-                className="w-full px-4 py-3 rounded-xl border-2 border-[#e0e0e8] bg-[#f9f9fc] text-[#1a1a2e] placeholder-[#b0b0c8] transition-all focus:outline-none focus:border-[#e8722a] focus:bg-white text-center text-2xl tracking-widest"
-                required
-              />
-            </div>
+            <input
+              type="text"
+              placeholder="Enter verification code"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              className="w-full p-4 border border-gray-300 rounded-xl text-center text-2xl tracking-widest"
+              maxLength={6}
+              required
+            />
 
-            {/* Verify button */}
+            {/* BUTTON */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-8 py-3 rounded-lg bg-[#1a1a2e] hover:bg-[#0f0f1e] text-white font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-4 rounded-xl text-white font-semibold bg-[#1a1a2e] hover:bg-[#0f0f1e] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {loading && <Loader2 className="w-5 h-5 animate-spin" />}
-              {loading ? "Verifying..." : "Verify Email"}
+              {loading ? <Loader2 className="animate-spin" /> : "Verify email"}
             </button>
           </form>
+
+          {/* Resend code */}
+          <div className="text-center mt-6">
+            <p className="text-[#4a4a68]">
+              Didn't receive the code?{" "}
+              <button
+                onClick={handleResend}
+                className="font-semibold text-[#1a1a2e] hover:text-[#e8722a] transition-colors"
+              >
+                Resend code
+              </button>
+            </p>
+          </div>
+
+          {/* Back to login */}
+          <div className="text-center mt-4">
+            <Link
+              to="/login"
+              className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              ← Back to login
+            </Link>
+          </div>
         </div>
       </div>
     </div>
   );
-}
+};
+
+export default VerifyEmail;

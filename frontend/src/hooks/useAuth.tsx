@@ -31,6 +31,7 @@ interface AuthContextType {
   ) => Promise<void>;
   signOut: () => void;
   logout: () => void; // Alias for signOut to maintain compatibility
+  googleSignIn: (credential: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -42,6 +43,7 @@ const AuthContext = createContext<AuthContextType>({
   signUp: async () => {},
   signOut: () => {},
   logout: () => {},
+  googleSignIn: async () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -121,6 +123,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null);
   };
 
+  const googleSignIn = async (credential: string) => {
+    setLoading(true);
+    try {
+      const data = await authApi.googleLogin(credential);
+
+      const token = data.token;
+      const userProfile = {
+        id: data.user.id,
+        email: data.user.email,
+        name: data.user.name,
+        role: data.user.role as Role,
+      };
+
+      localStorage.setItem("auth_token", token);
+      localStorage.setItem("auth_profile", JSON.stringify(userProfile));
+
+      setToken(token);
+      setProfile(userProfile);
+      setUser({ id: userProfile.id, email: userProfile.email });
+    } catch (error) {
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -132,6 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signUp,
         signOut,
         logout: signOut,
+        googleSignIn,
       }}
     >
       {children}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { User, Loader2, Store } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
@@ -27,13 +27,15 @@ const ROLE_OPTIONS: RoleOption[] = [
   },
 ];
 
-export default function SignupPage() {
+const SignupPage: React.FC = () => {
   const navigate = useNavigate();
   const { signUp, loading } = useAuth();
+
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [error, setError] = useState("");
 
@@ -80,28 +82,25 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-white">
-      {/* Left side - Image */}
-      <div className="hidden lg:flex lg:w-1/2 items-center justify-center bg-gradient-to-br from-[#faf5f0] to-[#f5ede4] overflow-hidden">
+    <div className="min-h-screen flex bg-[#fef8f3]">
+      {/* RIGHT */}
+      <div className="hidden lg:flex lg:w-1/2 items-center justify-center bg-[#1a1a2e] text-white items-center justify-center overflow-hidden">
         <img
-          src="/image.png"
+          src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&h=1200&fit=crop"
           alt="CF Company Welcome"
-          className="w-full h-full object-contain max-h-screen"
+          className="w-full h-full object-cover"
         />
       </div>
 
-      {/* Right side - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12">
+      {/* LEFT */}
+      <div className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">
-          {/* Welcome Header */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-[#1a1a2e] mb-2">
-              Join CF Company,
-            </h1>
-            <p className="text-[#4a4a68]">
-              Create your account and get started
-            </p>
-          </div>
+          <h1 className="text-4xl font-bold mb-2 text-[#00000b]">
+            Join CF Company
+          </h1>
+          <p className="mb-6 text-gray-600">
+            Create your account and get started
+          </p>
 
           {/* Error message */}
           {error && (
@@ -110,146 +109,111 @@ export default function SignupPage() {
             </div>
           )}
 
-          {/* Form */}
-          <form onSubmit={handleSignup} className="space-y-5">
-            {/* Full Name */}
-            <div>
-              <label
-                htmlFor="fullName"
-                className="block text-base font-semibold text-[#1a1a2e] mb-3"
-              >
-                Full Name
-              </label>
-              <input
-                id="fullName"
-                type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="John Doe"
-                className="w-full px-4 py-3 rounded-xl border-2 border-[#e0e0e8] bg-[#f9f9fc] text-[#1a1a2e] placeholder-[#b0b0c8] transition-all focus:outline-none focus:border-[#e8722a] focus:bg-white"
-                required
-              />
-            </div>
+          <form onSubmit={handleSignup} className="space-y-4">
+            {/* FULL NAME */}
+            <input
+              type="text"
+              placeholder="Full Name"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="w-full p-4 border border-gray-300 rounded-xl"
+              required
+            />
 
-            {/* Email */}
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-base font-semibold text-[#1a1a2e] mb-3"
-              >
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full px-4 py-3 rounded-xl border-2 border-[#e0e0e8] bg-[#f9f9fc] text-[#1a1a2e] placeholder-[#b0b0c8] transition-all focus:outline-none focus:border-[#e8722a] focus:bg-white"
-                required
-              />
-            </div>
+            {/* EMAIL */}
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full p-4 border border-gray-300 rounded-xl"
+              required
+            />
 
-            {/* Password */}
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-base font-semibold text-[#1a1a2e] mb-3"
-              >
-                Password
-              </label>
+            {/* PASSWORD */}
+            <div className="relative">
               <input
-                id="password"
-                type="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-4 py-3 rounded-xl border-2 border-[#e0e0e8] bg-[#f9f9fc] text-[#1a1a2e] placeholder-[#b0b0c8] transition-all focus:outline-none focus:border-[#e8722a] focus:bg-white"
+                className="w-full p-4 border border-gray-300 rounded-xl"
                 required
               />
-              <p className="text-xs mt-2 text-[#4a4a68]">
-                Must be at least 8 characters
-              </p>
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-sm"
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
             </div>
 
-            {/* Confirm Password */}
-            <div>
-              <label
-                htmlFor="confirmPassword"
-                className="block text-base font-semibold text-[#1a1a2e] mb-3"
-              >
-                Confirm Password
-              </label>
+            {/* CONFIRM PASSWORD */}
+            <div className="relative">
               <input
-                id="confirmPassword"
-                type="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Confirm Password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-4 py-3 rounded-xl border-2 border-[#e0e0e8] bg-[#f9f9fc] text-[#1a1a2e] placeholder-[#b0b0c8] transition-all focus:outline-none focus:border-[#e8722a] focus:bg-white"
+                className="w-full p-4 border border-gray-300 rounded-xl"
                 required
               />
             </div>
 
             {/* Role Selection */}
-            <div className="pt-2">
-              <label className="block text-base font-semibold text-[#1a1a2e] mb-4">
-                I am a...
-              </label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {ROLE_OPTIONS.map((role) => (
-                  <button
-                    key={role.id}
-                    type="button"
-                    onClick={() => setSelectedRole(role.id)}
-                    className="p-4 rounded-xl border-2 transition-all text-center"
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              {ROLE_OPTIONS.map((role) => (
+                <button
+                  key={role.id}
+                  type="button"
+                  onClick={() => setSelectedRole(role.id)}
+                  className="p-4 rounded-xl border-2 transition-all text-center"
+                  style={{
+                    borderColor:
+                      selectedRole === role.id ? "#e8722a" : "#e0e0e8",
+                    backgroundColor:
+                      selectedRole === role.id ? "#fff5f0" : "#f9f9fc",
+                  }}
+                >
+                  <div
+                    className="flex justify-center mb-3"
                     style={{
-                      borderColor:
-                        selectedRole === role.id ? "#e8722a" : "#e0e0e8",
-                      backgroundColor:
-                        selectedRole === role.id ? "#fff5f0" : "#f9f9fc",
+                      color: selectedRole === role.id ? "#e8722a" : "#4a4a68",
                     }}
                   >
-                    <div
-                      className="flex justify-center mb-3"
-                      style={{
-                        color: selectedRole === role.id ? "#e8722a" : "#4a4a68",
-                      }}
-                    >
-                      {role.icon}
-                    </div>
-                    <h3 className="font-semibold mb-1 text-[#1a1a2e]">
-                      {role.label}
-                    </h3>
-                    <p className="text-xs text-[#4a4a68]">{role.description}</p>
-                  </button>
-                ))}
-              </div>
-              {!selectedRole && (
-                <p className="text-xs mt-2 text-red-600">
-                  Please select a role to continue
-                </p>
-              )}
+                    {role.icon}
+                  </div>
+                  <h3 className="font-semibold mb-1 text-[#1a1a2e]">
+                    {role.label}
+                  </h3>
+                  <p className="text-xs text-[#4a4a68]">{role.description}</p>
+                </button>
+              ))}
             </div>
 
-            {/* Create Account button */}
+            {/* BUTTON */}
             <button
               type="submit"
               disabled={loading || !selectedRole}
-              className="w-full mt-8 py-3 rounded-lg bg-[#1a1a2e] hover:bg-[#0f0f1e] text-white font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-4 rounded-xl text-white font-semibold bg-[#1a1a2e] hover:bg-[#0f0f1e] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4"
             >
-              {loading && <Loader2 className="w-5 h-5 animate-spin" />}
-              {loading ? "Creating Account..." : "Create Account"}
+              {loading ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                "Create Account"
+              )}
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="my-8 flex items-center gap-3">
-            <div className="flex-1 h-px bg-[#e0e0e8]"></div>
+          {/* SOCIAL */}
+          <div className="mt-6 grid grid-cols-2 gap-4">
+            <button className="border p-3 rounded-xl">Google</button>
+            <button className="border p-3 rounded-xl">Apple</button>
           </div>
 
           {/* Sign in link */}
-          <div className="text-center">
+          <div className="text-center mt-6">
             <span className="text-[#4a4a68]">Already have an account? </span>
             <Link
               to="/login"
@@ -262,4 +226,6 @@ export default function SignupPage() {
       </div>
     </div>
   );
-}
+};
+
+export default SignupPage;

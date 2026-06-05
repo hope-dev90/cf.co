@@ -1,13 +1,15 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Loader2 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
+import { Loader2 } from "lucide-react";
 
-export default function LoginPage() {
+const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { signIn, loading } = useAuth();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -16,7 +18,7 @@ export default function LoginPage() {
 
     try {
       await signIn(email, password);
-      // Redirect will be handled by App.tsx through auth state
+    
       navigate(email === "owner@example.com" ? "/owner" : "/dashboard");
     } catch (err) {
       setError(
@@ -28,34 +30,23 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-white">
-      {/* Left side - Image */}
-      <div className="hidden lg:flex lg:w-1/2 items-center justify-center bg-gradient-to-br from-[#faf5f0] to-[#f5ede4] overflow-hidden">
+    <div className="min-h-screen flex bg-[#fef8f3]">
+      {/* RIGHT */}
+      <div className="hidden lg:flex lg:w-1/2 items-center justify-center bg-[#1a1a2e] text-white items-center justify-center overflow-hidden">
         <img
-          src="/image.png"
+          src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&h=1200&fit=crop"
           alt="CF Company Welcome"
-          className="w-full h-full object-contain max-h-screen"
+          className="w-full h-full object-cover"
         />
       </div>
 
-      {/* Right side - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12">
+      {/* LEFT */}
+      <div className="flex-1 flex items-center justify-center px-6">
         <div className="w-full max-w-md">
-          {/* Welcome Header */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-[#1a1a2e] mb-2">Welcome,</h1>
-            <p className="text-[#4a4a68]">Sign in to your CF Company account</p>
-          </div>
-
-          {/* Demo Info */}
-          <div className="mb-6 p-4 rounded-lg bg-blue-50 border border-blue-200">
-            <p className="text-sm text-blue-700 font-medium">Demo Accounts:</p>
-            <p className="text-xs text-blue-600 mt-1">
-              Food Lover: user@example.com
-            </p>
-            <p className="text-xs text-blue-600">Owner: owner@example.com</p>
-            <p className="text-xs text-blue-600">Password: password123</p>
-          </div>
+          <h1 className="text-4xl font-bold mb-2 text-[#00000b]">Welcome</h1>
+          <p className="mb-6 text-gray-600">
+            Sign in to your CF Company account
+          </p>
 
           {/* Error message */}
           {error && (
@@ -64,64 +55,54 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Form */}
-          <form onSubmit={handleLogin} className="space-y-5">
-            {/* Email */}
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-base font-semibold text-[#1a1a2e] mb-3"
-              >
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full px-4 py-3 rounded-xl border-2 border-[#e0e0e8] bg-[#f9f9fc] text-[#1a1a2e] placeholder-[#b0b0c8] transition-all focus:outline-none focus:border-[#e8722a] focus:bg-white"
-                required
-              />
-            </div>
+          <form onSubmit={handleLogin} className="space-y-4">
+            {/* EMAIL */}
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full p-4 border border-gray-300 rounded-xl"
+              required
+            />
 
-            {/* Password */}
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-base font-semibold text-[#1a1a2e] mb-3"
-              >
-                Password
-              </label>
+            {/* PASSWORD */}
+            <div className="relative">
               <input
-                id="password"
-                type="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-4 py-3 rounded-xl border-2 border-[#e0e0e8] bg-[#f9f9fc] text-[#1a1a2e] placeholder-[#b0b0c8] transition-all focus:outline-none focus:border-[#e8722a] focus:bg-white"
+                className="w-full p-4 border border-gray-300 rounded-xl"
                 required
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-sm"
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
             </div>
 
-            {/* Sign in button */}
+            {/* BUTTON */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-8 py-3 rounded-lg bg-[#1a1a2e] hover:bg-[#0f0f1e] text-white font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-4 rounded-xl text-white font-semibold bg-[#1a1a2e] hover:bg-[#0f0f1e] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {loading && <Loader2 className="w-5 h-5 animate-spin" />}
-              {loading ? "Signing in..." : "Signup"}
+              {loading ? <Loader2 className="animate-spin" /> : "Sign in"}
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="my-8 flex items-center gap-3">
-            <div className="flex-1 h-px bg-[#e0e0e8]"></div>
+          {/* SOCIAL */}
+          <div className="mt-6 grid grid-cols-2 gap-4">
+            <button className="border p-3 rounded-xl">Google</button>
+            <button className="border p-3 rounded-xl">Apple</button>
           </div>
 
           {/* Sign up link */}
-          <div className="text-center">
+          <div className="text-center mt-6">
             <span className="text-[#4a4a68]">Don't have an account? </span>
             <Link
               to="/signup"
@@ -134,4 +115,6 @@ export default function LoginPage() {
       </div>
     </div>
   );
-}
+};
+
+export default LoginPage;
