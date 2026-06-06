@@ -12,6 +12,7 @@ import {
   Plus,
   ShoppingCart,
   Utensils,
+  UtensilsCrossed,
   X,
 } from "lucide-react";
 import { orderApi, restaurantApi } from "../../lib/api";
@@ -325,24 +326,17 @@ const BookingFlow: React.FC<BookingFlowProps> = ({
         tableAvailabilityId = reservation.availability?.id ?? selectedTable.id;
       }
 
-      const orderItems = cart
-        .filter((item) => item.menuItemId > 0)
-        .map((item) => ({
-          menu_item_id: item.menuItemId,
-          menu_item_name: item.name,
-          quantity: item.quantity,
-          unit_price: item.price,
-        }));
+      let orderItems = cart.map((item) => ({
+        menu_item_id: item.menuItemId > 0 ? item.menuItemId : null,
+        menu_item_name: item.name,
+        quantity: item.quantity,
+        unit_price: item.price,
+      }));
 
-      if (orderItems.length === 0 && useDemoData) {
-        orderItems.push(
-          ...cart.map((item) => ({
-            menu_item_id: null,
-            menu_item_name: item.name,
-            quantity: item.quantity,
-            unit_price: item.price,
-          })),
-        );
+      if (orderItems.length === 0) {
+        setError("Add at least one item to your cart.");
+        setSubmitting(false);
+        return;
       }
 
       await orderApi.create({

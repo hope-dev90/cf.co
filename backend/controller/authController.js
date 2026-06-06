@@ -19,6 +19,11 @@ import {
   getAllUsers,
 } from "../models/userModels.js";
 
+import {
+  createRestaurant,
+  addRestaurantLocation,
+} from "../models/restaurantModel.js";
+
 const generateToken = (id, role) => {
   return jwt.sign({ id, role }, process.env.JWT_SECRET, {
     expiresIn: "7d",
@@ -152,10 +157,14 @@ const getDatabaseErrorMessage = (error) => {
   return null;
 };
 export const register = async (req, res) => {
-  const { name, email, password, role } = req.body;
+  const { name, email, password, role, restaurantData } = req.body;
 
+  const client = await pool.connect();
   try {
+    await client.query("BEGIN");
+
     if (!name || !email || !password || !role) {
+      await client.query("ROLLBACK");
       return res.status(400).json({
         success: false,
         message: "All fields are required",
@@ -171,6 +180,7 @@ export const register = async (req, res) => {
     }
 
     if (!["client", "restaurateur"].includes(normalizedRole)) {
+      await client.query("ROLLBACK");
       return res.status(400).json({
         success: false,
         message: "Role must be client or restaurateur",
@@ -179,6 +189,7 @@ export const register = async (req, res) => {
 
     const existingUser = await findUserByEmail(normalizedEmail);
     if (existingUser) {
+      await client.query("ROLLBACK");
       return res.status(400).json({
         success: false,
         message: "Email already exists",
@@ -193,6 +204,34 @@ export const register = async (req, res) => {
       password: hashedPassword,
       role: normalizedRole,
     });
+
+    // If role is restaurateur and we have restaurantData, create a restaurant!
+    if (normalizedRole === "restaurateur" && restaurantData) {
+      const restaurant = await createRestaurant({
+        user_id: user.id,
+        name: restaurantData.restaurantName,
+        description: restaurantData.restaurantDescription,
+        cuisine_type: restaurantData.cuisineType,
+        phone: restaurantData.restaurantPhone,
+        email: user.email,
+        website: null,
+        operating_hours: JSON.stringify(restaurantData.operatingHours),
+      });
+
+      if (restaurantData.address || restaurantData.city) {
+        await addRestaurantLocation({
+          restaurant_id: restaurant.id,
+          address: restaurantData.address,
+          city: restaurantData.city,
+          state: null,
+          postal_code: null,
+          latitude: null,
+          longitude: null,
+        });
+      }
+    }
+
+    await client.query("COMMIT");
 
     const otp = generateOtp();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
@@ -228,6 +267,7 @@ export const register = async (req, res) => {
       },
     });
   } catch (error) {
+    await client.query("ROLLBACK");
     console.error("register error:", error);
     const databaseMessage = getDatabaseErrorMessage(error);
 
@@ -242,6 +282,8 @@ export const register = async (req, res) => {
       success: false,
       message: "Something went wrong",
     });
+  } finally {
+    client.release();
   }
 };
 
@@ -346,94 +388,102 @@ export const verifyEmail = async (req, res) => {
   }
 };
 export const login = async (req, res) => {
-    const { email, password } = req.body;
+  const { email, password } = req.body;
 
-    console.log("Login attempt:", { email: email ? email.substring(0, 20) + '...' : 'missing', password: password ? 'provided' : 'missing' });
+  console.log("Login attempt:", {
+    email: email ? email.substring(0, 20) + "..." : "missing",
+    password: password ? "provided" : "missing",
+  });
 
-    try {
-        if (!email || !password) {
-            console.log("Missing email or password");
-            return res.status(400).json({
-                success: false,
-                message: "Email and password are required",
-            });
-        }
-
-        const normalizedEmail = normalizeEmail(email);
-        console.log("Normalized email:", normalizedEmail);
-        
-        const user = await findUserByEmail(normalizedEmail);
-        console.log("Found user:", user ? { id: user.id, email: user.email, name: user.name } : 'NO USER FOUND');
-        
-        if (!user) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid credentials",
-            });
-        }
-
-        if (!user.is_verified) {
-            if (isDevEnvironment()) {
-                await markEmailVerified(normalizedEmail);
-                user.is_verified = true;
-                console.log("Auto-verified user in dev mode");
-            } else {
-                return res.status(400).json({
-                    success: false,
-                    message: "Please verify your email first",
-                    requiresVerification: true,
-                });
-            }
-        }
-
-        if (!user.password) {
-            return res.status(400).json({
-                success: false,
-                message: "This account uses Google sign-in. Please log in with Google.",
-            });
-        }
-
-        const isMatch = await bcrypt.compare(password, user.password);
-        console.log("Password match:", isMatch);
-        
-        if (!isMatch) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid credentials",
-            });
-        }
-
-        const token = generateToken(user.id, user.role);
-
-        console.log("Login successful for user:", user.email);
-
-        return res.status(200).json({
-            success: true,
-            message: "Login successful",
-            token,
-            user: {
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-            },
-        });
-    } catch (error) {
-        console.error("login error:", error);
-        const databaseMessage = getDatabaseErrorMessage(error);
-
-        if (databaseMessage) {
-            return res.status(500).json({
-                success: false,
-                message: databaseMessage,
-            });
-        }
-
-        return res.status(500).json({
-            success: false,
-            message: "Something went wrong",
-        });
+  try {
+    if (!email || !password) {
+      console.log("Missing email or password");
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required",
+      });
     }
+
+    const normalizedEmail = normalizeEmail(email);
+    console.log("Normalized email:", normalizedEmail);
+
+    const user = await findUserByEmail(normalizedEmail);
+    console.log(
+      "Found user:",
+      user
+        ? { id: user.id, email: user.email, name: user.name }
+        : "NO USER FOUND",
+    );
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid credentials",
+      });
+    }
+
+    if (!user.is_verified) {
+      if (isDevEnvironment()) {
+        await markEmailVerified(normalizedEmail);
+        user.is_verified = true;
+        console.log("Auto-verified user in dev mode");
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: "Please verify your email first",
+          requiresVerification: true,
+        });
+      }
+    }
+
+    if (!user.password) {
+      return res.status(400).json({
+        success: false,
+        message: "This account uses Google sign-in. Please log in with Google.",
+      });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    console.log("Password match:", isMatch);
+
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid credentials",
+      });
+    }
+
+    const token = generateToken(user.id, user.role);
+
+    console.log("Login successful for user:", user.email);
+
+    return res.status(200).json({
+      success: true,
+      message: "Login successful",
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    console.error("login error:", error);
+    const databaseMessage = getDatabaseErrorMessage(error);
+
+    if (databaseMessage) {
+      return res.status(500).json({
+        success: false,
+        message: databaseMessage,
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+    });
+  }
 };
 
 export const getProfile = async (req, res) => {

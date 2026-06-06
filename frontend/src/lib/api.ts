@@ -39,10 +39,16 @@ const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
 // Auth API
 export const authApi = {
-  register: (name: string, email: string, password: string, role: string) => 
+  register: (name: string, email: string, password: string, role: string, restaurantData?: Record<string, unknown>) => 
     apiClient('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ name, email: normalizeEmail(email), password, role }),
+      body: JSON.stringify({ 
+        name, 
+        email: normalizeEmail(email), 
+        password, 
+        role,
+        restaurantData 
+      }),
     }),
     
   login: (email: string, password: string) => 
@@ -100,10 +106,18 @@ export const restaurantApi = {
   create: (data: Record<string, unknown>) => apiClient('/restaurants', { method: 'POST', body: JSON.stringify(data) }),
   update: (id: string | number, data: Record<string, unknown>) => apiClient(`/restaurants/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id: string | number) => apiClient(`/restaurants/${id}`, { method: 'DELETE' }),
-  getMenu: (restaurantId: string | number) =>
-    apiClient(`/restaurants/${restaurantId}/menu`, { method: 'GET' }),
-  getTables: (restaurantId: string | number) =>
-    apiClient(`/restaurants/${restaurantId}/tables`, { method: 'GET' }),
+  
+  // Menu Items
+  getMenu: (restaurantId: string | number) => apiClient(`/restaurants/${restaurantId}/menu`, { method: 'GET' }),
+  addMenuItem: (restaurantId: string | number, data: Record<string, unknown>) => 
+    apiClient(`/restaurants/${restaurantId}/menu`, { method: 'POST', body: JSON.stringify(data) }),
+  updateMenuItem: (id: string | number, data: Record<string, unknown>) => 
+    apiClient(`/restaurants/menu/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteMenuItem: (id: string | number) => 
+    apiClient(`/restaurants/menu/${id}`, { method: 'DELETE' }),
+  
+  // Tables
+  getTables: (restaurantId: string | number) => apiClient(`/restaurants/${restaurantId}/tables`, { method: 'GET' }),
   getTableAvailability: (restaurantId: string | number, date: string) =>
     apiClient(`/restaurants/${restaurantId}/tables/availability/${date}`, { method: 'GET' }),
   reserveTable: (availabilityId: number, data: Record<string, unknown>) =>

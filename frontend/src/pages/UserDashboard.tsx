@@ -16,6 +16,16 @@ import { orderApi, restaurantApi } from "../lib/api";
 import BookingFlow from "../components/booking/BookingFlow";
 import type { ApiRestaurant } from "../types/booking";
 
+const formatNumber = (num: number): string => {
+  if (num >= 1000000) {
+    return `$${(num / 1000000).toFixed(1)}M`;
+  }
+  if (num >= 1000) {
+    return `$${(num / 1000).toFixed(1)}K`;
+  }
+  return `$${num.toFixed(2)}`;
+};
+
 interface DisplayRestaurant {
   id: string;
   name: string;
@@ -195,14 +205,15 @@ const OrderCard: React.FC<{ order: Order }> = ({ order }) => {
       <div className="mb-3 border-b border-gray-200 pb-3">
         {order.items.map((item, idx) => (
           <p key={idx} className="text-sm text-gray-600">
-            {item.quantity}x {item.name} - ${(item.price * item.quantity).toFixed(2)}
+            {item.quantity}x {item.name} - $
+            {(item.price * item.quantity).toFixed(2)}
           </p>
         ))}
       </div>
       <div className="flex items-center justify-between">
         <div>
           <span className="font-bold text-gray-900">
-            Total: ${order.totalAmount.toFixed(2)}
+            Total: {formatNumber(order.totalAmount)}
           </span>
           {order.paymentMethod && (
             <p className="text-xs text-gray-500 capitalize">
@@ -381,7 +392,9 @@ const UserDashboard: React.FC = () => {
 
   const categories = [
     "All",
-    ...Array.from(new Set(restaurants.map((restaurant) => restaurant.category))),
+    ...Array.from(
+      new Set(restaurants.map((restaurant) => restaurant.category)),
+    ),
   ];
 
   return (
@@ -418,7 +431,9 @@ const UserDashboard: React.FC = () => {
                   setActiveTab(item.id as "browse" | "orders" | "profile")
                 }
                 className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 transition-all ${
-                  isActive ? "border-l-4 text-[#e8722a]" : "text-gray-400 hover:text-gray-200"
+                  isActive
+                    ? "border-l-4 text-[#e8722a]"
+                    : "text-gray-400 hover:text-gray-200"
                 }`}
                 style={{
                   borderLeftColor: isActive ? "#e8722a" : "transparent",

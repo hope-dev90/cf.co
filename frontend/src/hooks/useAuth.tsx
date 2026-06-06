@@ -99,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password: string,
     fullName: string,
     role: SignupRole,
+    restaurantData?: Record<string, unknown>,
   ) => {
     setLoading(true);
     try {
@@ -110,6 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email,
         password,
         backendRole,
+        restaurantData
       );
 
       return { message: data.message };

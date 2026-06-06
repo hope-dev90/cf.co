@@ -1,6 +1,14 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { User, Loader2, Store } from "lucide-react";
+import {
+  User,
+  Loader2,
+  Store,
+  Clock,
+  MapPin,
+  Phone,
+  ChefHat,
+} from "lucide-react";
 import { GoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../hooks/useAuth";
 
@@ -33,6 +41,24 @@ const ROLE_OPTIONS: RoleOption[] = [
   },
 ];
 
+// Days of week for operating hours
+const DAYS = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+];
+
+interface OperatingHour {
+  day: string;
+  isOpen: boolean;
+  openTime: string;
+  closeTime: string;
+}
+
 const SignupPage: React.FC = () => {
   const navigate = useNavigate();
   const { signUp, loading, googleSignIn } = useAuth();
@@ -44,6 +70,22 @@ const SignupPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [error, setError] = useState("");
+
+  // Restaurant details state
+  const [restaurantName, setRestaurantName] = useState("");
+  const [restaurantDescription, setRestaurantDescription] = useState("");
+  const [restaurantPhone, setRestaurantPhone] = useState("");
+  const [cuisineType, setCuisineType] = useState("");
+  const [address, setAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [operatingHours, setOperatingHours] = useState<OperatingHour[]>(
+    DAYS.map((day) => ({
+      day,
+      isOpen: true,
+      openTime: "09:00",
+      closeTime: "22:00",
+    })),
+  );
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,7 +117,19 @@ const SignupPage: React.FC = () => {
     }
 
     try {
-      const result = await signUp(email, password, fullName, selectedRole);
+      const restaurantData = selectedRole === "restaurant_owner" 
+        ? { 
+            restaurantName,
+            restaurantDescription, 
+            restaurantPhone, 
+            cuisineType, 
+            address, 
+            city, 
+            operatingHours 
+          } 
+        : null;
+      
+      const result = await signUp(email, password, fullName, selectedRole, restaurantData);
 
       if (result.message.toLowerCase().includes("sign in now")) {
         navigate("/login", { state: { email } });
@@ -219,6 +273,185 @@ const SignupPage: React.FC = () => {
                 </button>
               ))}
             </div>
+
+            {/* Restaurant Details Form - Only shown if restaurant_owner is selected */}
+            {selectedRole === "restaurant_owner" && (
+              <div className="mt-6 space-y-4 p-6 bg-[#faf5f0] rounded-xl border border-[#e8722a]/30">
+                <h2 className="text-xl font-bold text-[#1a1a2e] flex items-center gap-2">
+                  <ChefHat className="w-6 h-6 text-[#e8722a]" />
+                  Your Restaurant Details
+                </h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-sm font-semibold text-[#1a1a2e]">
+                      Restaurant Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={restaurantName}
+                      onChange={(e) => setRestaurantName(e.target.value)}
+                      placeholder="e.g., The Bistro Hub"
+                      className="w-full p-3 border border-gray-300 rounded-xl focus:border-[#e8722a] outline-none"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-sm font-semibold text-[#1a1a2e]">
+                      Cuisine Type <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={cuisineType}
+                      onChange={(e) => setCuisineType(e.target.value)}
+                      placeholder="e.g., Italian, Mexican, Fusion"
+                      className="w-full p-3 border border-gray-300 rounded-xl focus:border-[#e8722a] outline-none"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-sm font-semibold text-[#1a1a2e]">
+                      <Phone className="w-4 h-4 inline mr-1" />
+                      Phone <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      value={restaurantPhone}
+                      onChange={(e) => setRestaurantPhone(e.target.value)}
+                      placeholder="+1 555 123 4567"
+                      className="w-full p-3 border border-gray-300 rounded-xl focus:border-[#e8722a] outline-none"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-sm font-semibold text-[#1a1a2e]">
+                      City <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      placeholder="Your City"
+                      className="w-full p-3 border border-gray-300 rounded-xl focus:border-[#e8722a] outline-none"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-sm font-semibold text-[#1a1a2e]">
+                    <MapPin className="w-4 h-4 inline mr-1" />
+                    Address <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="123 Main Street, Suite 100"
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:border-[#e8722a] outline-none"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-sm font-semibold text-[#1a1a2e]">
+                    Description
+                  </label>
+                  <textarea
+                    value={restaurantDescription}
+                    onChange={(e) => setRestaurantDescription(e.target.value)}
+                    rows={3}
+                    placeholder="Tell us about your restaurant..."
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:border-[#e8722a] outline-none"
+                  />
+                </div>
+
+                {/* Operating Hours */}
+                <div className="space-y-3">
+                  <label className="text-sm font-semibold text-[#1a1a2e] flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    Operating Hours
+                  </label>
+                  <div className="space-y-2 bg-white p-4 rounded-xl border border-gray-200">
+                    {operatingHours.map((day, index) => (
+                      <div
+                        key={day.day}
+                        className="grid grid-cols-12 gap-2 items-center"
+                      >
+                        <div className="col-span-3">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={day.isOpen}
+                              onChange={() => {
+                                setOperatingHours((prev) =>
+                                  prev.map((d, i) =>
+                                    i === index
+                                      ? { ...d, isOpen: !d.isOpen }
+                                      : d,
+                                  ),
+                                );
+                              }}
+                              className="w-4 h-4 accent-[#e8722a]"
+                            />
+                            <span className="text-sm font-medium text-[#1a1a2e]">
+                              {day.day}
+                            </span>
+                          </div>
+                        </div>
+                        {day.isOpen && (
+                          <>
+                            <div className="col-span-4">
+                              <input
+                                type="time"
+                                value={day.openTime}
+                                onChange={(e) =>
+                                  setOperatingHours((prev) =>
+                                    prev.map((d, i) =>
+                                      i === index
+                                        ? { ...d, openTime: e.target.value }
+                                        : d,
+                                    ),
+                                  )
+                                }
+                                className="w-full p-2 border border-gray-300 rounded-lg text-sm"
+                              />
+                            </div>
+                            <div className="col-span-1 flex items-center justify-center text-gray-400">
+                              -
+                            </div>
+                            <div className="col-span-4">
+                              <input
+                                type="time"
+                                value={day.closeTime}
+                                onChange={(e) =>
+                                  setOperatingHours((prev) =>
+                                    prev.map((d, i) =>
+                                      i === index
+                                        ? { ...d, closeTime: e.target.value }
+                                        : d,
+                                    ),
+                                  )
+                                }
+                                className="w-full p-2 border border-gray-300 rounded-lg text-sm"
+                              />
+                            </div>
+                          </>
+                        )}
+                        {!day.isOpen && (
+                          <div className="col-span-9 text-sm text-gray-400 italic">
+                            Closed
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* BUTTON */}
             <button

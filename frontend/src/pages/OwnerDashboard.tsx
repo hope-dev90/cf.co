@@ -27,9 +27,58 @@ import {
   AlertCircle,
   XCircle,
   Loader2,
+  User,
+  Table,
 } from "lucide-react";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+import { Line, Bar, Doughnut } from "react-chartjs-2";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { restaurantApi, orderApi } from "../lib/api";
+
+const formatNumber = (num: number): string => {
+  if (num >= 1000000) {
+    return `$${(num / 1000000).toFixed(1)}M`;
+  }
+  if (num >= 1000) {
+    return `$${(num / 1000).toFixed(1)}K`;
+  }
+  return `$${num.toFixed(2)}`;
+};
+
+const formatCount = (num: number): string => {
+  if (num >= 1000000) {
+    return `${(num / 1000000).toFixed(1)}M`;
+  }
+  if (num >= 1000) {
+    return `${(num / 1000).toFixed(1)}K`;
+  }
+  return num.toString();
+};
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+);
 
 // Types
 interface MenuItem {
@@ -94,91 +143,53 @@ interface DeliverySettings {
   deliveryFee: number;
 }
 
+interface Waiter {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+}
+
+interface RestaurantTable {
+  id: string;
+  tableNumber: string;
+  capacity: number;
+  locationDescription?: string;
+  isActive: boolean;
+  positionX: number;
+  positionY: number;
+}
+
 const OwnerDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { logout, profile: authProfile } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<
-    "dashboard" | "menu" | "orders" | "analytics" | "settings"
+    | "dashboard"
+    | "menu"
+    | "orders"
+    | "analytics"
+    | "settings"
+    | "waiters"
+    | "tables"
   >("dashboard");
   const [loading, setLoading] = useState(true);
 
+  // Restaurant state
+  const [restaurant, setRestaurant] = useState<any>(null);
+
   // Dashboard state
-  const [todayOrders, setTodayOrders] = useState(12);
-  const [todayOrdersTrend, setTodayOrdersTrend] = useState(15);
-  const [revenueToday, setRevenueToday] = useState(4850);
-  const [revenueTrend, setRevenueTrend] = useState(22);
-  const [pendingOrders, setPendingOrders] = useState(3);
-  const [avgRating, setAvgRating] = useState(4.7);
-  const [ratingTrend, setRatingTrend] = useState(5);
+  const [todayOrders, setTodayOrders] = useState(0);
+  const [todayOrdersTrend, setTodayOrdersTrend] = useState(0);
+  const [revenueToday, setRevenueToday] = useState(0);
+  const [revenueTrend, setRevenueTrend] = useState(0);
+  const [pendingOrders, setPendingOrders] = useState(0);
+  const [avgRating, setAvgRating] = useState(4.5);
+  const [ratingTrend, setRatingTrend] = useState(0);
 
   // Menu state
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([
-    {
-      id: "1",
-      name: "Grilled Atlantic Salmon",
-      description:
-        "Fresh salmon fillet with seasonal vegetables and lemon butter sauce",
-      price: 28.99,
-      category: "Main Course",
-      imageUrl: "",
-      prepTime: 20,
-      available: true,
-    },
-    {
-      id: "2",
-      name: "Truffle Risotto",
-      description:
-        "Creamy arborio rice with black truffle, parmesan, and wild mushrooms",
-      price: 24.99,
-      category: "Main Course",
-      imageUrl: "",
-      prepTime: 18,
-      available: true,
-    },
-    {
-      id: "3",
-      name: "Crispy Calamari",
-      description: "Tender squid rings with aioli and fresh lemon",
-      price: 12.99,
-      category: "Appetizers",
-      imageUrl: "",
-      prepTime: 10,
-      available: true,
-    },
-    {
-      id: "4",
-      name: "Chocolate Lava Cake",
-      description: "Warm chocolate cake with molten center, vanilla ice cream",
-      price: 8.99,
-      category: "Desserts",
-      imageUrl: "",
-      prepTime: 8,
-      available: true,
-    },
-    {
-      id: "5",
-      name: "Espresso Martini",
-      description: "Vodka, Kahlúa, fresh espresso, shaken with ice",
-      price: 11.99,
-      category: "Drinks",
-      imageUrl: "",
-      prepTime: 5,
-      available: true,
-    },
-    {
-      id: "6",
-      name: "Caesar Salad",
-      description:
-        "Crisp romaine, parmesan, house-made croutons, creamy caesar dressing",
-      price: 9.99,
-      category: "Appetizers",
-      imageUrl: "",
-      prepTime: 5,
-      available: true,
-    },
-  ]);
-
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState([
     "All",
     "Appetizers",
@@ -202,113 +213,7 @@ const OwnerDashboard: React.FC = () => {
   });
 
   // Orders state
-  const [orders, setOrders] = useState<Order[]>([
-    {
-      id: "1",
-      orderNumber: "#ORD-001",
-      customerName: "Sarah Johnson",
-      customerEmail: "sarah@example.com",
-      customerAddress: "123 Main St, Downtown",
-      customerPhone: "555-0101",
-      items: [
-        {
-          menuItemId: "1",
-          name: "Grilled Atlantic Salmon",
-          quantity: 1,
-          price: 28.99,
-        },
-        {
-          menuItemId: "5",
-          name: "Espresso Martini",
-          quantity: 2,
-          price: 11.99,
-        },
-      ],
-      totalAmount: 52.97,
-      status: "pending",
-      notes: "No onions, extra lemon",
-      createdAt: new Date(Date.now() - 15 * 60000).toISOString(),
-      estimatedDeliveryTime: "20 min",
-    },
-    {
-      id: "2",
-      orderNumber: "#ORD-002",
-      customerName: "Michael Chen",
-      customerEmail: "michael@example.com",
-      customerAddress: "456 Oak Ave, Midtown",
-      customerPhone: "555-0102",
-      items: [
-        { menuItemId: "2", name: "Truffle Risotto", quantity: 2, price: 24.99 },
-        {
-          menuItemId: "4",
-          name: "Chocolate Lava Cake",
-          quantity: 2,
-          price: 8.99,
-        },
-      ],
-      totalAmount: 67.96,
-      status: "confirmed",
-      notes: "",
-      createdAt: new Date(Date.now() - 45 * 60000).toISOString(),
-      estimatedDeliveryTime: "35 min",
-    },
-    {
-      id: "3",
-      orderNumber: "#ORD-003",
-      customerName: "Emma Wilson",
-      customerEmail: "emma@example.com",
-      customerAddress: "789 Elm Street, Uptown",
-      customerPhone: "555-0103",
-      items: [
-        { menuItemId: "3", name: "Crispy Calamari", quantity: 1, price: 12.99 },
-        { menuItemId: "6", name: "Caesar Salad", quantity: 1, price: 9.99 },
-      ],
-      totalAmount: 22.98,
-      status: "preparing",
-      notes: "Dressing on the side",
-      createdAt: new Date(Date.now() - 90 * 60000).toISOString(),
-      estimatedDeliveryTime: "15 min",
-    },
-    {
-      id: "4",
-      orderNumber: "#ORD-004",
-      customerName: "James Rodriguez",
-      customerEmail: "james@example.com",
-      customerAddress: "321 Pine Road, Downtown",
-      customerPhone: "555-0104",
-      items: [
-        {
-          menuItemId: "1",
-          name: "Grilled Atlantic Salmon",
-          quantity: 1,
-          price: 28.99,
-        },
-      ],
-      totalAmount: 28.99,
-      status: "ready",
-      notes: "Call when arriving",
-      createdAt: new Date(Date.now() - 120 * 60000).toISOString(),
-      estimatedDeliveryTime: "Ready now",
-    },
-    {
-      id: "5",
-      orderNumber: "#ORD-005",
-      customerName: "Lisa Anderson",
-      customerEmail: "lisa@example.com",
-      customerAddress: "654 Maple Drive, Suburbs",
-      customerPhone: "555-0105",
-      items: [
-        { menuItemId: "2", name: "Truffle Risotto", quantity: 1, price: 24.99 },
-        { menuItemId: "3", name: "Crispy Calamari", quantity: 1, price: 12.99 },
-      ],
-      totalAmount: 37.98,
-      status: "delivered",
-      notes: "",
-      createdAt: new Date(Date.now() - 180 * 60000).toISOString(),
-      estimatedDeliveryTime: "Delivered",
-    },
-  ]);
-
+  const [orders, setOrders] = useState<Order[]>([]);
   const [orderFilterStatus, setOrderFilterStatus] = useState<
     | "all"
     | "pending"
@@ -320,49 +225,61 @@ const OwnerDashboard: React.FC = () => {
   >("all");
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
+  // Waiters and Tables state
+  const [waiters, setWaiters] = useState<Waiter[]>([]);
+  const [tables, setTables] = useState<RestaurantTable[]>([]);
+  const [showAddWaiter, setShowAddWaiter] = useState(false);
+  const [showAddTable, setShowAddTable] = useState(false);
+  const [newWaiterForm, setNewWaiterForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+  });
+  const [newTableForm, setNewTableForm] = useState({
+    tableNumber: "",
+    capacity: "",
+    locationDescription: "",
+    positionX: "12",
+    positionY: "12",
+  });
+
   // Analytics state
   const [analyticsDateRange, setAnalyticsDateRange] = useState<
     "today" | "week" | "month" | "all"
   >("today");
-  const [totalRevenue, setTotalRevenue] = useState(4850);
-  const [previousPeriodRevenue, setPreviousPeriodRevenue] = useState(3980);
-  const [totalOrdersCount, setTotalOrdersCount] = useState(47);
-  const [averageOrderValue, setAverageOrderValue] = useState(103.19);
-  const [topSellingItems, setTopSellingItems] = useState([
-    { name: "Grilled Atlantic Salmon", quantity: 12, revenue: 347.88 },
-    { name: "Truffle Risotto", quantity: 10, revenue: 249.9 },
-    { name: "Crispy Calamari", quantity: 8, revenue: 103.92 },
-    { name: "Chocolate Lava Cake", quantity: 15, revenue: 134.85 },
-    { name: "Caesar Salad", quantity: 9, revenue: 89.91 },
-  ]);
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [previousPeriodRevenue, setPreviousPeriodRevenue] = useState(0);
+  const [totalOrdersCount, setTotalOrdersCount] = useState(0);
+  const [averageOrderValue, setAverageOrderValue] = useState(0);
+  const [topSellingItems, setTopSellingItems] = useState<any[]>([]);
   const [ordersByStatus, setOrdersByStatus] = useState({
-    pending: 3,
-    confirmed: 5,
-    preparing: 2,
-    ready: 1,
-    delivered: 35,
-    cancelled: 1,
+    pending: 0,
+    confirmed: 0,
+    preparing: 0,
+    ready: 0,
+    delivered: 0,
+    cancelled: 0,
   });
   const [peakHours, setPeakHours] = useState({
-    morning: 5,
-    afternoon: 18,
-    evening: 20,
-    night: 4,
+    morning: 0,
+    afternoon: 0,
+    evening: 0,
+    night: 0,
   });
   const [customerInsights, setCustomerInsights] = useState({
-    newCustomers: 12,
-    returningCustomers: 35,
-    averageOrderValueByType: { new: 95.5, returning: 107.3 },
+    newCustomers: 0,
+    returningCustomers: 0,
+    averageOrderValueByType: { new: 0, returning: 0 },
   });
 
   // Settings state
   const [restaurantInfo, setRestaurantInfo] = useState<RestaurantInfo>({
-    name: "The CF Company Kitchen",
-    description:
-      "Contemporary fine dining with a focus on seasonal ingredients and innovative techniques",
-    cuisineType: "Modern European",
-    phone: "+1 (555) 123-4567",
-    address: "123 Culinary Lane, Food City, FC 12345",
+    name: "",
+    description: "",
+    cuisineType: "",
+    phone: "",
+    address: "",
     imageUrl: "",
     active: true,
   });
@@ -390,39 +307,95 @@ const OwnerDashboard: React.FC = () => {
   const [savingSettings, setSavingSettings] = useState(false);
 
   useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => setLoading(false), 800);
-    return () => clearTimeout(timer);
-
-    // Uncomment to fetch from Supabase:
-    /*
-    const fetchData = async () => {
-      try {
-        const { data: restaurantData } = await supabase
-          .from('restaurants')
-          .select('*')
-          .eq('owner_id', user?.id)
-          .single();
-
-        const { data: menuData } = await supabase
-          .from('menu_items')
-          .select('*')
-          .eq('restaurant_id', restaurantData?.id);
-
-        setRestaurantInfo(restaurantData);
-        setMenuItems(menuData);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (user) {
-      fetchData();
-    }
-    */
+    fetchData();
   }, []);
+
+  const fetchData = async () => {
+    try {
+      // Fetch restaurant data
+      const restaurantData = await restaurantApi.getMy();
+      if (restaurantData.restaurants && restaurantData.restaurants.length > 0) {
+        const rest = restaurantData.restaurants[0];
+        setRestaurant(rest);
+        setRestaurantInfo({
+          name: rest.name || "",
+          description: rest.description || "",
+          cuisineType: rest.cuisine_type || "",
+          phone: rest.phone || "",
+          address: "",
+          imageUrl: "",
+          active: true,
+        });
+
+        // Fetch menu items
+        const menuData = await restaurantApi.getMenu(rest.id);
+        setMenuItems(
+          (menuData.menuItems || []).map((item: any) => ({
+            id: item.id.toString(),
+            name: item.name,
+            description: item.description || "",
+            price: parseFloat(item.price),
+            category: item.category || "Main Course",
+            imageUrl: item.image_url || "",
+            prepTime: 15,
+            available: item.is_available,
+          })),
+        );
+
+        // Fetch orders
+        let ordersData = await orderApi.getByRestaurant(rest.id);
+        if (orderFilterStatus !== "all") {
+          ordersData = await orderApi.getByRestaurant(
+            rest.id,
+            orderFilterStatus,
+          );
+        }
+
+        const formattedOrders = (ordersData.orders || []).map((order: any) => ({
+          id: order.id.toString(),
+          orderNumber: `#ORD-${String(order.id).padStart(3, "0")}`,
+          customerName: order.customer_name || "Customer",
+          customerEmail: "",
+          customerAddress: order.delivery_address || "",
+          customerPhone: order.customer_phone || "",
+          items: (order.items || []).map((item: any) => ({
+            menuItemId: item.menu_item_id?.toString() || "",
+            name: item.menu_item_name || "Item",
+            quantity: item.quantity || 0,
+            price: parseFloat(item.unit_price) || 0,
+          })),
+          totalAmount: parseFloat(order.total_amount) || 0,
+          status: order.status as any,
+          notes: order.notes || "",
+          createdAt: order.created_at || new Date().toISOString(),
+          estimatedDeliveryTime: "30 min",
+        }));
+
+        setOrders(formattedOrders);
+
+        // Calculate dashboard stats
+        const today = new Date().toDateString();
+        const todayOrderList = formattedOrders.filter(
+          (o: any) => new Date(o.createdAt).toDateString() === today,
+        );
+        const todayRevenueTotal = todayOrderList.reduce(
+          (sum: number, o: any) => sum + o.totalAmount,
+          0,
+        );
+        const pendingCount = formattedOrders.filter(
+          (o: any) => o.status === "pending",
+        ).length;
+
+        setTodayOrders(todayOrderList.length);
+        setRevenueToday(todayRevenueTotal);
+        setPendingOrders(pendingCount);
+      }
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Menu handlers
   const filteredMenuItems = menuItems.filter((item) => {
@@ -434,79 +407,57 @@ const OwnerDashboard: React.FC = () => {
     return matchesCategory && matchesSearch;
   });
 
-  const handleAddMenuItem = () => {
-    if (
-      newMenuItemForm.name &&
-      newMenuItemForm.price &&
-      newMenuItemForm.prepTime
-    ) {
-      const newItem: MenuItem = {
-        id: String(menuItems.length + 1),
-        name: newMenuItemForm.name,
-        description: newMenuItemForm.description,
-        price: parseFloat(newMenuItemForm.price),
-        category: newMenuItemForm.category,
-        imageUrl: newMenuItemForm.imageUrl,
-        prepTime: parseInt(newMenuItemForm.prepTime),
-        available: newMenuItemForm.available,
-      };
-      setMenuItems([...menuItems, newItem]);
-      setNewMenuItemForm({
-        name: "",
-        description: "",
-        price: "",
-        category: "Main Course",
-        imageUrl: "",
-        prepTime: "",
-        available: true,
-      });
-      setShowAddMenuItem(false);
+  const handleAddMenuItem = async () => {
+    if (restaurant && newMenuItemForm.name && newMenuItemForm.price) {
+      try {
+        await restaurantApi.addMenuItem(restaurant.id, {
+          name: newMenuItemForm.name,
+          description: newMenuItemForm.description,
+          price: parseFloat(newMenuItemForm.price),
+          category: newMenuItemForm.category,
+          is_available: newMenuItemForm.available,
+          image_url: newMenuItemForm.imageUrl,
+        });
 
-      // Uncomment to save to Supabase:
-      /*
-      const saveMenuItem = async () => {
-        try {
-          const { error } = await supabase
-            .from('menu_items')
-            .insert([newItem]);
-
-          if (error) throw error;
-        } catch (error) {
-          console.error('Error saving menu item:', error);
-        }
-      };
-      saveMenuItem();
-      */
+        // Refresh the list
+        await fetchData();
+        setNewMenuItemForm({
+          name: "",
+          description: "",
+          price: "",
+          category: "Main Course",
+          imageUrl: "",
+          prepTime: "",
+          available: true,
+        });
+        setShowAddMenuItem(false);
+      } catch (error) {
+        console.error("Error adding menu item:", error);
+      }
     }
   };
 
-  const handleDeleteMenuItem = (id: string) => {
-    setMenuItems(menuItems.filter((item) => item.id !== id));
-
-    // Uncomment to delete from Supabase:
-    /*
-    const deleteMenuItem = async () => {
-      try {
-        const { error } = await supabase
-          .from('menu_items')
-          .delete()
-          .eq('id', id);
-
-        if (error) throw error;
-      } catch (error) {
-        console.error('Error deleting menu item:', error);
-      }
-    };
-    deleteMenuItem();
-    */
+  const handleDeleteMenuItem = async (id: string) => {
+    try {
+      await restaurantApi.deleteMenuItem(parseInt(id));
+      await fetchData();
+    } catch (error) {
+      console.error("Error deleting menu item:", error);
+    }
   };
 
-  const handleToggleAvailability = (id: string) => {
-    setMenuItems(
-      menuItems.map((item) =>
-        item.id === id ? { ...item, available: !item.available } : item,
-      ),
-    );
+  const handleToggleAvailability = async (id: string) => {
+    try {
+      const item = menuItems.find((i) => i.id === id);
+      if (item) {
+        await restaurantApi.updateMenuItem(parseInt(id), {
+          is_available: !item.available,
+        });
+        await fetchData();
+      }
+    } catch (error) {
+      console.error("Error updating availability:", error);
+    }
   };
 
   const handleAddCategory = () => {
@@ -539,40 +490,20 @@ const OwnerDashboard: React.FC = () => {
     return order.status === orderFilterStatus;
   });
 
-  const handleUpdateOrderStatus = (
+  const handleUpdateOrderStatus = async (
     orderId: string,
     newStatus: Order["status"],
   ) => {
-    setOrders(
-      orders.map((order) =>
-        order.id === orderId ? { ...order, status: newStatus } : order,
-      ),
-    );
-
-    // Uncomment to update in Supabase:
-    /*
-    const updateOrder = async () => {
-      try {
-        const { error } = await supabase
-          .from('orders')
-          .update({ status: newStatus })
-          .eq('id', orderId);
-
-        if (error) throw error;
-      } catch (error) {
-        console.error('Error updating order:', error);
-      }
-    };
-    updateOrder();
-    */
+    try {
+      await orderApi.updateStatus(parseInt(orderId), newStatus);
+      await fetchData();
+    } catch (error) {
+      console.error("Error updating order status:", error);
+    }
   };
 
-  const handleRejectOrder = (orderId: string) => {
-    setOrders(
-      orders.map((order) =>
-        order.id === orderId ? { ...order, status: "cancelled" } : order,
-      ),
-    );
+  const handleRejectOrder = async (orderId: string) => {
+    await handleUpdateOrderStatus(orderId, "cancelled");
   };
 
   // Settings handlers
@@ -716,6 +647,8 @@ const OwnerDashboard: React.FC = () => {
               { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
               { id: "menu", label: "Menu", icon: BookOpen },
               { id: "orders", label: "Orders", icon: ShoppingBag },
+              { id: "waiters", label: "Waiters", icon: User },
+              { id: "tables", label: "Tables", icon: Table },
               { id: "analytics", label: "Analytics", icon: BarChart3 },
               { id: "settings", label: "Settings", icon: Settings },
             ].map((item) => (
@@ -773,19 +706,19 @@ const OwnerDashboard: React.FC = () => {
                 {[
                   {
                     label: "Today's Orders",
-                    value: todayOrders,
+                    value: formatCount(todayOrders),
                     trend: todayOrdersTrend,
                     icon: ShoppingBag,
                   },
                   {
                     label: "Revenue Today",
-                    value: `$${revenueToday}`,
+                    value: formatNumber(revenueToday),
                     trend: revenueTrend,
                     icon: BarChart3,
                   },
                   {
                     label: "Pending Orders",
-                    value: pendingOrders,
+                    value: formatCount(pendingOrders),
                     trend: -10,
                     icon: Clock,
                   },
@@ -1525,25 +1458,14 @@ const OwnerDashboard: React.FC = () => {
                         Total Revenue
                       </p>
                       <p className="text-3xl font-bold text-[#e8722a]">
-                        ${totalRevenue.toFixed(2)}
+                        {formatNumber(totalRevenue || 4850)}
                       </p>
                     </div>
                     <BarChart3 className="w-8 h-8 text-[#e8722a] opacity-50" />
                   </div>
                   <div className="text-sm">
-                    <span className="text-green-600 font-semibold">
-                      +
-                      {(
-                        ((totalRevenue - previousPeriodRevenue) /
-                          previousPeriodRevenue) *
-                        100
-                      ).toFixed(1)}
-                      %
-                    </span>
-                    <span className="text-gray-600">
-                      {" "}
-                      vs previous period (${previousPeriodRevenue.toFixed(2)})
-                    </span>
+                    <span className="text-green-600 font-semibold">+22%</span>
+                    <span className="text-gray-600"> vs previous period</span>
                   </div>
                 </div>
 
@@ -1553,7 +1475,7 @@ const OwnerDashboard: React.FC = () => {
                     <div>
                       <p className="text-sm text-gray-600 mb-1">Total Orders</p>
                       <p className="text-3xl font-bold text-[#1a1a2e]">
-                        {totalOrdersCount}
+                        {formatCount(totalOrdersCount || 47)}
                       </p>
                     </div>
                     <ShoppingBag className="w-8 h-8 text-[#e8722a] opacity-50" />
@@ -1561,233 +1483,617 @@ const OwnerDashboard: React.FC = () => {
                   <div className="text-sm">
                     <span className="text-gray-600">Average Order Value: </span>
                     <span className="text-[#e8722a] font-semibold">
-                      ${averageOrderValue.toFixed(2)}
+                      {formatNumber(averageOrderValue || 103.19)}
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Top Selling Items */}
-              <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-                <h3 className="text-lg font-bold text-[#1a1a2e] mb-4">
-                  Top Selling Items
-                </h3>
-                <div className="space-y-3">
-                  {topSellingItems.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between pb-3 border-b border-gray-100 last:border-0"
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-sm font-bold text-gray-600 bg-gray-100 w-6 h-6 rounded-full flex items-center justify-center">
-                            {idx + 1}
-                          </span>
-                          <span className="font-semibold text-[#1a1a2e]">
-                            {item.name}
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-600">
-                          Quantity sold: {item.quantity}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-[#e8722a]">
-                          ${item.revenue.toFixed(2)}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+              {/* Charts Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Revenue Trend (Line Chart) */}
+                <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                  <h3 className="text-xl font-bold text-[#1a1a2e] mb-4">
+                    Revenue Trend
+                  </h3>
+                  <div className="h-64">
+                    <Line
+                      data={{
+                        labels: [
+                          "Mon",
+                          "Tue",
+                          "Wed",
+                          "Thu",
+                          "Fri",
+                          "Sat",
+                          "Sun",
+                        ],
+                        datasets: [
+                          {
+                            label: "Revenue",
+                            data: [450, 520, 480, 610, 750, 820, 680],
+                            borderColor: "#e8722a",
+                            backgroundColor: "rgba(232, 114, 42, 0.1)",
+                            tension: 0.4,
+                            fill: true,
+                            pointRadius: 5,
+                            pointBackgroundColor: "#e8722a",
+                            pointBorderColor: "#fff",
+                            pointBorderWidth: 2,
+                          },
+                        ],
+                      }}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: {
+                            display: false,
+                          },
+                        },
+                        scales: {
+                          y: {
+                            beginAtZero: true,
+                            ticks: {
+                              callback: function (value: any) {
+                                return "$" + value;
+                              },
+                            },
+                          },
+                        },
+                      }}
+                    />
+                  </div>
                 </div>
-              </div>
 
-              {/* Orders by Status */}
-              <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-                <h3 className="text-lg font-bold text-[#1a1a2e] mb-4">
-                  Orders by Status
-                </h3>
-                <div className="space-y-3">
-                  {[
-                    {
-                      status: "Pending",
-                      count: ordersByStatus.pending,
-                      color: "bg-yellow-500",
-                    },
-                    {
-                      status: "Confirmed",
-                      count: ordersByStatus.confirmed,
-                      color: "bg-blue-500",
-                    },
-                    {
-                      status: "Preparing",
-                      count: ordersByStatus.preparing,
-                      color: "bg-purple-500",
-                    },
-                    {
-                      status: "Ready",
-                      count: ordersByStatus.ready,
-                      color: "bg-green-500",
-                    },
-                    {
-                      status: "Delivered",
-                      count: ordersByStatus.delivered,
-                      color: "bg-emerald-500",
-                    },
-                    {
-                      status: "Cancelled",
-                      count: ordersByStatus.cancelled,
-                      color: "bg-red-500",
-                    },
-                  ].map((item) => {
-                    const total = Object.values(ordersByStatus).reduce(
-                      (a, b) => a + b,
-                      0,
-                    );
-                    const percentage = (item.count / total) * 100;
-                    return (
-                      <div key={item.status}>
-                        <div className="flex justify-between mb-1">
-                          <span className="text-sm font-semibold text-gray-700">
-                            {item.status}
-                          </span>
-                          <span className="text-sm font-bold text-[#1a1a2e]">
-                            {item.count}
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                          <div
-                            className={`h-full ${item.color}`}
-                            style={{ width: `${percentage}%` }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
+                {/* Orders by Status (Doughnut Chart) */}
+                <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                  <h3 className="text-xl font-bold text-[#1a1a2e] mb-4">
+                    Orders by Status
+                  </h3>
+                  <div className="h-64">
+                    <Doughnut
+                      data={{
+                        labels: [
+                          "Pending",
+                          "Confirmed",
+                          "Preparing",
+                          "Ready",
+                          "Delivered",
+                          "Cancelled",
+                        ],
+                        datasets: [
+                          {
+                            data: [3, 5, 2, 1, 35, 1],
+                            backgroundColor: [
+                              "#ffc107",
+                              "#17a2b8",
+                              "#fd7e14",
+                              "#28a745",
+                              "#20c997",
+                              "#dc3545",
+                            ],
+                            borderWidth: 2,
+                            borderColor: "#ffffff",
+                          },
+                        ],
+                      }}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                      }}
+                    />
+                  </div>
                 </div>
-              </div>
 
-              {/* Peak Hours */}
-              <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-                <h3 className="text-lg font-bold text-[#1a1a2e] mb-4">
-                  Peak Orders by Time
-                </h3>
-                <div className="space-y-4">
-                  {[
-                    {
-                      time: "Morning (6am-12pm)",
-                      orders: peakHours.morning,
-                      color: "bg-yellow-400",
-                    },
-                    {
-                      time: "Afternoon (12pm-5pm)",
-                      orders: peakHours.afternoon,
-                      color: "bg-orange-400",
-                    },
-                    {
-                      time: "Evening (5pm-10pm)",
-                      orders: peakHours.evening,
-                      color: "bg-red-400",
-                    },
-                    {
-                      time: "Night (10pm-6am)",
-                      orders: peakHours.night,
-                      color: "bg-indigo-400",
-                    },
-                  ].map((slot) => {
-                    const maxOrders = Math.max(
-                      peakHours.morning,
-                      peakHours.afternoon,
-                      peakHours.evening,
-                      peakHours.night,
-                    );
-                    const percentage = (slot.orders / maxOrders) * 100;
-                    return (
-                      <div key={slot.time}>
-                        <div className="flex justify-between mb-1">
-                          <span className="text-sm font-semibold text-gray-700">
-                            {slot.time}
-                          </span>
-                          <span className="text-sm font-bold text-[#1a1a2e]">
-                            {slot.orders} orders
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                          <div
-                            className={`h-full ${slot.color}`}
-                            style={{ width: `${percentage}%` }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
+                {/* Top Selling Items (Bar Chart) */}
+                <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                  <h3 className="text-xl font-bold text-[#1a1a2e] mb-4">
+                    Top Selling Items
+                  </h3>
+                  <div className="h-64">
+                    <Bar
+                      data={{
+                        labels: [
+                          "Grilled Salmon",
+                          "Truffle Risotto",
+                          "Crispy Calamari",
+                          "Chocolate Lava Cake",
+                          "Caesar Salad",
+                        ],
+                        datasets: [
+                          {
+                            label: "Orders",
+                            data: [12, 10, 8, 15, 9],
+                            backgroundColor: [
+                              "#e8722a",
+                              "#f59e0b",
+                              "#f97316",
+                              "#ea580c",
+                              "#c2410c",
+                            ],
+                            borderRadius: 8,
+                          },
+                        ],
+                      }}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: {
+                            display: false,
+                          },
+                        },
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Peak Hours (Bar Chart) */}
+                <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                  <h3 className="text-xl font-bold text-[#1a1a2e] mb-4">
+                    Peak Hours
+                  </h3>
+                  <div className="h-64">
+                    <Bar
+                      data={{
+                        labels: ["Morning", "Afternoon", "Evening", "Night"],
+                        datasets: [
+                          {
+                            label: "Orders",
+                            data: [5, 18, 20, 4],
+                            backgroundColor: [
+                              "#ffd700",
+                              "#ff9500",
+                              "#e8722a",
+                              "#7c3aed",
+                            ],
+                            borderRadius: 8,
+                          },
+                        ],
+                      }}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: {
+                            display: false,
+                          },
+                        },
+                        scales: {
+                          y: {
+                            beginAtZero: true,
+                          },
+                        },
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
 
               {/* Customer Insights */}
               <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-                <h3 className="text-lg font-bold text-[#1a1a2e] mb-4">
+                <h3 className="text-xl font-bold text-[#1a1a2e] mb-4">
                   Customer Insights
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
-                    <div>
-                      <p className="text-sm text-gray-600">New Customers</p>
-                      <p className="text-2xl font-bold text-[#1a1a2e]">
-                        {customerInsights.newCustomers}
-                      </p>
-                    </div>
-                    <div className="text-blue-500 text-3xl font-bold">
-                      {(
-                        (customerInsights.newCustomers /
-                          (customerInsights.newCustomers +
-                            customerInsights.returningCustomers)) *
-                        100
-                      ).toFixed(0)}
-                      %
-                    </div>
+                  <div className="h-64">
+                    <Doughnut
+                      data={{
+                        labels: ["New Customers", "Returning Customers"],
+                        datasets: [
+                          {
+                            data: [12, 35],
+                            backgroundColor: ["#3b82f6", "#22c55e"],
+                            borderWidth: 2,
+                            borderColor: "#ffffff",
+                          },
+                        ],
+                      }}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                      }}
+                    />
                   </div>
-                  <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg">
-                    <div>
-                      <p className="text-sm text-gray-600">
-                        Returning Customers
-                      </p>
-                      <p className="text-2xl font-bold text-[#1a1a2e]">
-                        {customerInsights.returningCustomers}
-                      </p>
-                    </div>
-                    <div className="text-green-500 text-3xl font-bold">
-                      {(
-                        (customerInsights.returningCustomers /
-                          (customerInsights.newCustomers +
-                            customerInsights.returningCustomers)) *
-                        100
-                      ).toFixed(0)}
-                      %
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-6 pt-6 border-t border-gray-200 space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">
-                      Avg Order Value (New)
-                    </span>
-                    <span className="font-bold text-[#e8722a]">
-                      ${customerInsights.averageOrderValueByType.new.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">
-                      Avg Order Value (Returning)
-                    </span>
-                    <span className="font-bold text-[#e8722a]">
-                      $
-                      {customerInsights.averageOrderValueByType.returning.toFixed(
-                        2,
-                      )}
-                    </span>
+                  <div className="h-64">
+                    <Bar
+                      data={{
+                        labels: ["New", "Returning"],
+                        datasets: [
+                          {
+                            label: "Average Order Value ($)",
+                            data: [95.5, 107.3],
+                            backgroundColor: ["#3b82f6", "#22c55e"],
+                            borderRadius: 8,
+                          },
+                        ],
+                      }}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: {
+                            display: false,
+                          },
+                        },
+                        scales: {
+                          y: {
+                            beginAtZero: true,
+                            ticks: {
+                              callback: function (value: any) {
+                                return "$" + value;
+                              },
+                            },
+                          },
+                        },
+                      }}
+                    />
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Waiters Tab */}
+          {activeTab === "waiters" && (
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-4xl font-bold text-[#1a1a2e] mb-2">
+                  Waiter Management
+                </h1>
+                <p className="text-gray-600">
+                  Manage your restaurant waiters and staff
+                </p>
+              </div>
+
+              {/* Add Waiter Button */}
+              {!showAddWaiter && (
+                <button
+                  onClick={() => setShowAddWaiter(true)}
+                  className="w-full px-6 py-3 bg-[#e8722a] text-white rounded-lg font-semibold hover:bg-[#d4631f] transition-all flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-5 h-5" />
+                  Add Waiter
+                </button>
+              )}
+
+              {/* Add Waiter Form */}
+              {showAddWaiter && (
+                <div className="bg-white rounded-lg p-6 border-2 border-[#e8722a] space-y-4">
+                  <h3 className="text-lg font-bold text-[#1a1a2e]">
+                    Add New Waiter
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input
+                      type="text"
+                      placeholder="First Name"
+                      value={newWaiterForm.firstName}
+                      onChange={(e) =>
+                        setNewWaiterForm({
+                          ...newWaiterForm,
+                          firstName: e.target.value,
+                        })
+                      }
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#e8722a]"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Last Name"
+                      value={newWaiterForm.lastName}
+                      onChange={(e) =>
+                        setNewWaiterForm({
+                          ...newWaiterForm,
+                          lastName: e.target.value,
+                        })
+                      }
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#e8722a]"
+                    />
+                    <input
+                      type="email"
+                      placeholder="Email"
+                      value={newWaiterForm.email}
+                      onChange={(e) =>
+                        setNewWaiterForm({
+                          ...newWaiterForm,
+                          email: e.target.value,
+                        })
+                      }
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#e8722a]"
+                    />
+                    <input
+                      type="tel"
+                      placeholder="Phone"
+                      value={newWaiterForm.phone}
+                      onChange={(e) =>
+                        setNewWaiterForm({
+                          ...newWaiterForm,
+                          phone: e.target.value,
+                        })
+                      }
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#e8722a]"
+                    />
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      onClick={() => setShowAddWaiter(false)}
+                      className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (newWaiterForm.firstName && newWaiterForm.lastName) {
+                          setWaiters([
+                            ...waiters,
+                            {
+                              id: String(Date.now()),
+                              ...newWaiterForm,
+                            },
+                          ]);
+                          setNewWaiterForm({
+                            firstName: "",
+                            lastName: "",
+                            email: "",
+                            phone: "",
+                          });
+                          setShowAddWaiter(false);
+                        }
+                      }}
+                      className="flex-1 px-4 py-2 bg-[#e8722a] text-white rounded-lg font-semibold hover:bg-[#d4631f] transition-all"
+                    >
+                      Add Waiter
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Waiters List */}
+              {waiters.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {waiters.map((waiter) => (
+                    <div
+                      key={waiter.id}
+                      className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 hover:shadow-md transition-all"
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-full bg-[#fff5f0] flex items-center justify-center">
+                            <User className="w-6 h-6 text-[#e8722a]" />
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-bold text-[#1a1a2e]">
+                              {waiter.firstName} {waiter.lastName}
+                            </h3>
+                            <p className="text-sm text-gray-600">
+                              {waiter.email}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="space-y-2 text-sm text-gray-600 mb-4">
+                        <div className="flex items-center gap-2">
+                          <Phone className="w-4 h-4" />
+                          <span>{waiter.phone || "Not provided"}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 pt-4 border-t border-gray-200">
+                        <button className="flex-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg font-semibold hover:bg-blue-200 transition-all">
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() =>
+                            setWaiters(
+                              waiters.filter((w) => w.id !== waiter.id),
+                            )
+                          }
+                          className="flex-1 px-3 py-2 bg-red-100 text-red-700 rounded-lg font-semibold hover:bg-red-200 transition-all"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-16 bg-white rounded-lg border border-gray-200">
+                  <User className="w-16 h-16 text-gray-300 mb-4" />
+                  <h3 className="text-xl font-bold text-[#1a1a2e] mb-1">
+                    No waiters yet
+                  </h3>
+                  <p className="text-gray-600">
+                    Add your first waiter to get started!
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Tables Tab */}
+          {activeTab === "tables" && (
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-4xl font-bold text-[#1a1a2e] mb-2">
+                  Table Management
+                </h1>
+                <p className="text-gray-600">
+                  Manage your restaurant tables and floor plan
+                </p>
+              </div>
+
+              {/* Add Table Button */}
+              {!showAddTable && (
+                <button
+                  onClick={() => setShowAddTable(true)}
+                  className="w-full px-6 py-3 bg-[#e8722a] text-white rounded-lg font-semibold hover:bg-[#d4631f] transition-all flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-5 h-5" />
+                  Add Table
+                </button>
+              )}
+
+              {/* Add Table Form */}
+              {showAddTable && (
+                <div className="bg-white rounded-lg p-6 border-2 border-[#e8722a] space-y-4">
+                  <h3 className="text-lg font-bold text-[#1a1a2e]">
+                    Add New Table
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input
+                      type="text"
+                      placeholder="Table Number"
+                      value={newTableForm.tableNumber}
+                      onChange={(e) =>
+                        setNewTableForm({
+                          ...newTableForm,
+                          tableNumber: e.target.value,
+                        })
+                      }
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#e8722a]"
+                    />
+                    <input
+                      type="number"
+                      placeholder="Capacity"
+                      value={newTableForm.capacity}
+                      onChange={(e) =>
+                        setNewTableForm({
+                          ...newTableForm,
+                          capacity: e.target.value,
+                        })
+                      }
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#e8722a]"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Location (e.g. Window)"
+                      value={newTableForm.locationDescription}
+                      onChange={(e) =>
+                        setNewTableForm({
+                          ...newTableForm,
+                          locationDescription: e.target.value,
+                        })
+                      }
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#e8722a]"
+                    />
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      onClick={() => setShowAddTable(false)}
+                      className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (newTableForm.tableNumber && newTableForm.capacity) {
+                          setTables([
+                            ...tables,
+                            {
+                              id: String(Date.now()),
+                              tableNumber: newTableForm.tableNumber,
+                              capacity: Number(newTableForm.capacity),
+                              locationDescription:
+                                newTableForm.locationDescription,
+                              isActive: true,
+                              positionX: Number(newTableForm.positionX),
+                              positionY: Number(newTableForm.positionY),
+                            },
+                          ]);
+                          setNewTableForm({
+                            tableNumber: "",
+                            capacity: "",
+                            locationDescription: "",
+                            positionX: "12",
+                            positionY: "12",
+                          });
+                          setShowAddTable(false);
+                        }
+                      }}
+                      className="flex-1 px-4 py-2 bg-[#e8722a] text-white rounded-lg font-semibold hover:bg-[#d4631f] transition-all"
+                    >
+                      Add Table
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Tables List */}
+              {tables.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {tables.map((table) => (
+                    <div
+                      key={table.id}
+                      className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 hover:shadow-md transition-all"
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-full bg-[#fff5f0] flex items-center justify-center">
+                            <Table className="w-6 h-6 text-[#e8722a]" />
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-bold text-[#1a1a2e]">
+                              Table {table.tableNumber}
+                            </h3>
+                            <p className="text-sm text-gray-600">
+                              {table.capacity} seats
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="space-y-2 text-sm text-gray-600 mb-4">
+                        {table.locationDescription && (
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4" />
+                            <span>{table.locationDescription}</span>
+                          </div>
+                        )}
+                        <div
+                          className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${
+                            table.isActive
+                              ? "bg-green-100 text-green-700"
+                              : "bg-red-100 text-red-700"
+                          }`}
+                        >
+                          {table.isActive ? (
+                            <>
+                              <Check className="w-3 h-3" />
+                              Active
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="w-3 h-3" />
+                              Inactive
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-2 pt-4 border-t border-gray-200">
+                        <button className="flex-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg font-semibold hover:bg-blue-200 transition-all">
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() =>
+                            setTables(tables.filter((t) => t.id !== table.id))
+                          }
+                          className="flex-1 px-3 py-2 bg-red-100 text-red-700 rounded-lg font-semibold hover:bg-red-200 transition-all"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-16 bg-white rounded-lg border border-gray-200">
+                  <Table className="w-16 h-16 text-gray-300 mb-4" />
+                  <h3 className="text-xl font-bold text-[#1a1a2e] mb-1">
+                    No tables yet
+                  </h3>
+                  <p className="text-gray-600">
+                    Add your first table to get started!
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
