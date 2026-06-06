@@ -18,27 +18,37 @@ const apiClient = async (url: string, options: RequestInit = {}) => {
     headers,
   });
 
-  const data = await response.json();
+  let data: { message?: string; [key: string]: unknown } = {};
+  try {
+    data = await response.json();
+  } catch {
+    if (!response.ok) {
+      throw new Error(`Request failed (${response.status})`);
+    }
+    return {};
+  }
   
   if (!response.ok) {
-    throw new Error(data.message || 'Something went wrong');
+    throw new Error(data.message || `Request failed (${response.status})`);
   }
 
   return data;
 };
+
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
 // Auth API
 export const authApi = {
   register: (name: string, email: string, password: string, role: string) => 
     apiClient('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ name, email, password, role }),
+      body: JSON.stringify({ name, email: normalizeEmail(email), password, role }),
     }),
     
   login: (email: string, password: string) => 
     apiClient('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email: normalizeEmail(email), password }),
     }),
     
   googleLogin: (credential: string, role?: string) => 
@@ -51,6 +61,12 @@ export const authApi = {
     apiClient('/auth/verify-email', {
       method: 'POST',
       body: JSON.stringify({ email, otp }),
+    }),
+
+  resendOtp: (email: string) =>
+    apiClient('/auth/resend-otp', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
     }),
     
   forgotPassword: (email: string) => 
@@ -79,27 +95,38 @@ export const authApi = {
 // Restaurants API
 export const restaurantApi = {
   getAll: () => apiClient('/restaurants', { method: 'GET' }),
-  getById: (id: string) => apiClient(`/restaurants/${id}`, { method: 'GET' }),
+  getById: (id: string | number) => apiClient(`/restaurants/${id}`, { method: 'GET' }),
   getMy: () => apiClient('/restaurants/my', { method: 'GET' }),
-  create: (data: any) => apiClient('/restaurants', { method: 'POST', body: JSON.stringify(data) }),
-  update: (id: string, data: any) => apiClient(`/restaurants/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-  delete: (id: string) => apiClient(`/restaurants/${id}`, { method: 'DELETE' }),
+  create: (data: Record<string, unknown>) => apiClient('/restaurants', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string | number, data: Record<string, unknown>) => apiClient(`/restaurants/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id: string | number) => apiClient(`/restaurants/${id}`, { method: 'DELETE' }),
+  getMenu: (restaurantId: string | number) =>
+    apiClient(`/restaurants/${restaurantId}/menu`, { method: 'GET' }),
+  getTables: (restaurantId: string | number) =>
+    apiClient(`/restaurants/${restaurantId}/tables`, { method: 'GET' }),
+  getTableAvailability: (restaurantId: string | number, date: string) =>
+    apiClient(`/restaurants/${restaurantId}/tables/availability/${date}`, { method: 'GET' }),
+  reserveTable: (availabilityId: number, data: Record<string, unknown>) =>
+    apiClient(`/restaurants/tables/availability/${availabilityId}/reserve`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
 };
 
 // Orders API
 export const orderApi = {
-  create: (data: any) => apiClient('/restaurants/orders', { method: 'POST', body: JSON.stringify(data) }),
+  create: (data: Record<string, unknown>) => apiClient('/restaurants/orders', { method: 'POST', body: JSON.stringify(data) }),
   getMy: () => apiClient('/restaurants/orders/my', { method: 'GET' }),
-  getById: (id: string) => apiClient(`/restaurants/orders/${id}`, { method: 'GET' }),
-  getByRestaurant: (restaurantId: string, status?: string) => {
-    const url = status 
-      ? `/restaurants/${restaurantId}/orders?status=${status}` 
+  getById: (id: string | number) => apiClient(`/restaurants/orders/${id}`, { method: 'GET' }),
+  getByRestaurant: (restaurantId: string | number, status?: string) => {
+    const url = status
+      ? `/restaurants/${restaurantId}/orders?status=${status}`
       : `/restaurants/${restaurantId}/orders`;
     return apiClient(url, { method: 'GET' });
   },
-  updateStatus: (id: string, status: string) => 
-    apiClient(`/restaurants/orders/${id}/status`, { 
-      method: 'PATCH', 
-      body: JSON.stringify({ status }) 
+  updateStatus: (id: string | number, status: string) =>
+    apiClient(`/restaurants/orders/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
     }),
 };

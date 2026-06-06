@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Search,
   ShoppingBag,
@@ -8,12 +8,15 @@ import {
   Clock,
   ChevronRight,
   Loader,
+  CalendarDays,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { orderApi, restaurantApi } from "../lib/api";
+import BookingFlow from "../components/booking/BookingFlow";
+import type { ApiRestaurant } from "../types/booking";
 
-// Types
-interface Restaurant {
+interface DisplayRestaurant {
   id: string;
   name: string;
   cuisine: string;
@@ -21,6 +24,7 @@ interface Restaurant {
   deliveryTime: number;
   image: string;
   category: string;
+  raw?: ApiRestaurant;
 }
 
 interface OrderItem {
@@ -34,8 +38,9 @@ interface Order {
   restaurantName: string;
   orderDate: string;
   totalAmount: number;
-  status: "pending" | "confirmed" | "preparing" | "ready" | "delivered";
+  status: string;
   items: OrderItem[];
+  paymentMethod?: string;
 }
 
 interface UserProfile {
@@ -45,8 +50,7 @@ interface UserProfile {
   phone: string;
 }
 
-// Mock data for restaurants
-const mockRestaurants: Restaurant[] = [
+const FALLBACK_RESTAURANTS: DisplayRestaurant[] = [
   {
     id: "1",
     name: "Pizzeria Bella",
@@ -77,90 +81,79 @@ const mockRestaurants: Restaurant[] = [
       "https://images.pexels.com/photos/376464/pexels-photo-376464.jpeg?auto=compress&cs=tinysrgb&w=400",
     category: "Burgers",
   },
-  {
-    id: "4",
-    name: "Wok Express",
-    cuisine: "Asian",
-    rating: 4.7,
-    deliveryTime: 35,
-    image:
-      "https://images.pexels.com/photos/941862/pexels-photo-941862.jpeg?auto=compress&cs=tinysrgb&w=400",
-    category: "Asian",
-  },
-  {
-    id: "5",
-    name: "Sweet Delights",
-    cuisine: "Desserts",
-    rating: 4.9,
-    deliveryTime: 15,
-    image:
-      "https://images.pexels.com/photos/1566837/pexels-photo-1566837.jpeg?auto=compress&cs=tinysrgb&w=400",
-    category: "Desserts",
-  },
-  {
-    id: "6",
-    name: "Spice Palace",
-    cuisine: "Indian",
-    rating: 4.7,
-    deliveryTime: 40,
-    image:
-      "https://images.pexels.com/photos/3756575/pexels-photo-3756575.jpeg?auto=compress&cs=tinysrgb&w=400",
-    category: "Asian",
-  },
 ];
 
-// Status badge color mapping
+const RESTAURANT_IMAGES = [
+  "https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=400",
+  "https://images.pexels.com/photos/298310/pexels-photo-298310.jpeg?auto=compress&cs=tinysrgb&w=400",
+  "https://images.pexels.com/photos/376464/pexels-photo-376464.jpeg?auto=compress&cs=tinysrgb&w=400",
+  "https://images.pexels.com/photos/941862/pexels-photo-941862.jpeg?auto=compress&cs=tinysrgb&w=400",
+];
+
 const getStatusColor = (status: string) => {
   switch (status) {
     case "pending":
       return "bg-yellow-100 text-yellow-800";
-    case "confirmed":
-      return "bg-blue-100 text-blue-800";
     case "preparing":
       return "bg-orange-100 text-orange-800";
     case "ready":
       return "bg-green-100 text-green-800";
+    case "completed":
     case "delivered":
       return "bg-gray-100 text-gray-800";
+    case "cancelled":
+      return "bg-red-100 text-red-800";
     default:
-      return "bg-gray-100 text-gray-800";
+      return "bg-blue-100 text-blue-800";
   }
 };
 
-// Restaurant Card Component
-const RestaurantCard: React.FC<{ restaurant: Restaurant }> = ({
-  restaurant,
-}) => {
+const mapApiRestaurant = (
+  restaurant: ApiRestaurant,
+  index: number,
+): DisplayRestaurant => ({
+  id: String(restaurant.id),
+  name: restaurant.name,
+  cuisine: restaurant.cuisine_type || "Restaurant",
+  rating: 4.5 + (index % 5) * 0.1,
+  deliveryTime: 20 + (index % 4) * 5,
+  image: RESTAURANT_IMAGES[index % RESTAURANT_IMAGES.length],
+  category: restaurant.cuisine_type || "All",
+  raw: restaurant,
+});
+
+const RestaurantCard: React.FC<{
+  restaurant: DisplayRestaurant;
+  onBook: (restaurant: DisplayRestaurant) => void;
+}> = ({ restaurant, onBook }) => {
   return (
-    <div className="group bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden">
+    <div className="group overflow-hidden rounded-lg bg-white shadow-md transition-shadow duration-300 hover:shadow-xl">
       <div className="relative h-48 overflow-hidden">
         <img
           src={restaurant.image}
           alt={restaurant.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
-        <button className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
-          <span
-            className="px-6 py-2 rounded-lg font-semibold transition-colors"
-            style={{
-              backgroundColor: "#e8722a",
-              color: "white",
-            }}
-          >
-            Order Now
+        <button
+          type="button"
+          onClick={() => onBook(restaurant)}
+          className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 opacity-0 transition-all duration-300 group-hover:bg-opacity-40 group-hover:opacity-100"
+        >
+          <span className="rounded-lg bg-[#e8722a] px-6 py-2 font-semibold text-white">
+            Book Now
           </span>
         </button>
       </div>
       <div className="p-4">
-        <h3 className="font-bold text-lg text-gray-900 mb-1">
+        <h3 className="mb-1 text-lg font-bold text-gray-900">
           {restaurant.name}
         </h3>
-        <p className="text-sm text-gray-600 mb-3">{restaurant.cuisine}</p>
-        <div className="flex items-center justify-between mb-3">
+        <p className="mb-3 text-sm text-gray-600">{restaurant.cuisine}</p>
+        <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-1">
             <Star size={16} fill="#e8722a" color="#e8722a" />
             <span className="font-semibold text-gray-900">
-              {restaurant.rating}
+              {restaurant.rating.toFixed(1)}
             </span>
           </div>
           <div className="flex items-center gap-1 text-gray-600">
@@ -168,18 +161,25 @@ const RestaurantCard: React.FC<{ restaurant: Restaurant }> = ({
             <span className="text-sm">{restaurant.deliveryTime} min</span>
           </div>
         </div>
+        <button
+          type="button"
+          onClick={() => onBook(restaurant)}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1a1a2e] py-3 font-semibold text-white transition-colors hover:bg-[#0f0f1e]"
+        >
+          <CalendarDays size={18} />
+          Book Table / Order
+        </button>
       </div>
     </div>
   );
 };
 
-// Order Card Component
 const OrderCard: React.FC<{ order: Order }> = ({ order }) => {
   return (
-    <div className="bg-white rounded-lg shadow-md p-4 mb-4 hover:shadow-lg transition-shadow">
-      <div className="flex items-start justify-between mb-3">
+    <div className="mb-4 rounded-lg bg-white p-4 shadow-md transition-shadow hover:shadow-lg">
+      <div className="mb-3 flex items-start justify-between">
         <div>
-          <h3 className="font-bold text-lg text-gray-900">
+          <h3 className="text-lg font-bold text-gray-900">
             {order.restaurantName}
           </h3>
           <p className="text-sm text-gray-600">
@@ -187,26 +187,32 @@ const OrderCard: React.FC<{ order: Order }> = ({ order }) => {
           </p>
         </div>
         <span
-          className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(order.status)}`}
+          className={`rounded-full px-3 py-1 text-sm font-semibold ${getStatusColor(order.status)}`}
         >
           {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
         </span>
       </div>
-      <div className="mb-3 pb-3 border-b border-gray-200">
+      <div className="mb-3 border-b border-gray-200 pb-3">
         {order.items.map((item, idx) => (
           <p key={idx} className="text-sm text-gray-600">
-            {item.quantity}x {item.name} - ₹
-            {(item.price * item.quantity).toFixed(2)}
+            {item.quantity}x {item.name} - ${(item.price * item.quantity).toFixed(2)}
           </p>
         ))}
       </div>
       <div className="flex items-center justify-between">
-        <span className="font-bold text-gray-900">
-          Total: ₹{order.totalAmount.toFixed(2)}
-        </span>
+        <div>
+          <span className="font-bold text-gray-900">
+            Total: ${order.totalAmount.toFixed(2)}
+          </span>
+          {order.paymentMethod && (
+            <p className="text-xs text-gray-500 capitalize">
+              Paid via {order.paymentMethod}
+            </p>
+          )}
+        </div>
         <button
-          className="flex items-center gap-2 font-semibold transition-colors"
-          style={{ color: "#e8722a" }}
+          type="button"
+          className="flex items-center gap-2 font-semibold text-[#e8722a]"
         >
           View Details
           <ChevronRight size={18} />
@@ -216,7 +222,6 @@ const OrderCard: React.FC<{ order: Order }> = ({ order }) => {
   );
 };
 
-// Main Dashboard Component
 const UserDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout, profile: authProfile } = useAuth();
@@ -228,142 +233,134 @@ const UserDashboard: React.FC = () => {
   const [orderFilter, setOrderFilter] = useState<
     "All" | "Active" | "Completed"
   >("All");
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [restaurants, setRestaurants] = useState<DisplayRestaurant[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [bookingRestaurant, setBookingRestaurant] =
+    useState<ApiRestaurant | null>(null);
 
   const userName = authProfile?.name || user?.email?.split("@")[0] || "User";
   const userInitial = userName.charAt(0).toUpperCase();
 
-  // Fetch restaurants
-  useEffect(() => {
-    const fetchRestaurants = async () => {
-      setLoading(true);
-      try {
-        // In a real app, this would come from Supabase
-        // const { data, error } = await supabase.from('restaurants').select('*');
-        // if (error) throw error;
-        setRestaurants(mockRestaurants);
-      } catch (error) {
-        console.error("Error fetching restaurants:", error);
-      } finally {
-        setLoading(false);
+  const fetchRestaurants = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await restaurantApi.getAll();
+      const apiRestaurants = data.restaurants || [];
+      if (apiRestaurants.length > 0) {
+        setRestaurants(
+          apiRestaurants.map((restaurant: ApiRestaurant, index: number) =>
+            mapApiRestaurant(restaurant, index),
+          ),
+        );
+      } else {
+        setRestaurants(FALLBACK_RESTAURANTS);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching restaurants:", error);
+      setRestaurants(FALLBACK_RESTAURANTS);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
+  const fetchOrders = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await orderApi.getMy();
+      const apiOrders = data.orders || [];
+      setOrders(
+        apiOrders.map(
+          (order: {
+            id: number;
+            restaurant_name?: string;
+            created_at: string;
+            total_amount: number | string;
+            status: string;
+            payment_method?: string;
+            items?: Array<{
+              menu_item_name: string;
+              quantity: number;
+              unit_price: number | string;
+            }>;
+          }) => ({
+            id: String(order.id),
+            restaurantName: order.restaurant_name || "Restaurant",
+            orderDate: order.created_at,
+            totalAmount: Number(order.total_amount),
+            status: order.status,
+            paymentMethod: order.payment_method,
+            items: (order.items || []).map((item) => ({
+              name: item.menu_item_name,
+              quantity: item.quantity,
+              price: Number(item.unit_price),
+            })),
+          }),
+        ),
+      );
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
     if (activeTab === "browse") {
       fetchRestaurants();
     }
-  }, [activeTab]);
+  }, [activeTab, fetchRestaurants]);
 
-  // Fetch orders
   useEffect(() => {
-    const fetchOrders = async () => {
-      setLoading(true);
-      try {
-        // In a real app, this would fetch from Supabase
-        // const { data, error } = await supabase
-        //   .from('orders')
-        //   .select('*')
-        //   .eq('user_id', user?.id);
-        // if (error) throw error;
-
-        // Mock orders data
-        const mockOrders: Order[] = [
-          {
-            id: "ORD001",
-            restaurantName: "Pizzeria Bella",
-            orderDate: new Date(
-              Date.now() - 2 * 24 * 60 * 60 * 1000,
-            ).toISOString(),
-            totalAmount: 450,
-            status: "delivered",
-            items: [
-              { name: "Margherita Pizza", quantity: 2, price: 200 },
-              { name: "Garlic Bread", quantity: 1, price: 50 },
-            ],
-          },
-          {
-            id: "ORD002",
-            restaurantName: "Tokyo Sushi",
-            orderDate: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-            totalAmount: 620,
-            status: "ready",
-            items: [
-              { name: "Salmon Nigiri", quantity: 12, price: 400 },
-              { name: "Miso Soup", quantity: 2, price: 110 },
-            ],
-          },
-          {
-            id: "ORD003",
-            restaurantName: "Burger Junction",
-            orderDate: new Date().toISOString(),
-            totalAmount: 380,
-            status: "preparing",
-            items: [
-              { name: "Classic Burger", quantity: 2, price: 180 },
-              { name: "Fries", quantity: 2, price: 80 },
-              { name: "Coke", quantity: 2, price: 60 },
-            ],
-          },
-        ];
-
-        setOrders(mockOrders);
-      } catch (error) {
-        console.error("Error fetching orders:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (activeTab === "orders") {
       fetchOrders();
     }
-  }, [activeTab, user]);
+  }, [activeTab, fetchOrders]);
 
-  // Fetch profile
   useEffect(() => {
-    const fetchProfile = async () => {
-      setLoading(true);
-      try {
-        // In a real app, fetch from Supabase
-        // const { data, error } = await supabase
-        //   .from('profiles')
-        //   .select('*')
-        //   .eq('user_id', user?.id)
-        //   .single();
-        // if (error) throw error;
-
-        setProfile({
-          id: user?.id || "",
-          name: userName,
-          email: user?.email || "",
-          phone: "+91 98765 43210",
-        });
-      } catch (error) {
-        console.error("Error fetching profile:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (activeTab === "profile") {
-      fetchProfile();
+      setLoading(true);
+      setProfile({
+        id: user?.id || "",
+        name: userName,
+        email: user?.email || "",
+        phone: "",
+      });
+      setLoading(false);
     }
   }, [activeTab, user, userName]);
 
   const handleLogout = async () => {
     try {
-      await logout();
+      logout();
       navigate("/login");
     } catch (error) {
       console.error("Error logging out:", error);
     }
   };
 
-  // Filter restaurants
+  const handleBook = async (restaurant: DisplayRestaurant) => {
+    if (restaurant.raw) {
+      setBookingRestaurant(restaurant.raw);
+      return;
+    }
+
+    try {
+      const data = await restaurantApi.getById(restaurant.id);
+      setBookingRestaurant(data.restaurant);
+    } catch {
+      setBookingRestaurant({
+        id: Number(restaurant.id),
+        name: restaurant.name,
+        cuisine_type: restaurant.cuisine,
+        operating_hours: null,
+      });
+    }
+  };
+
   const filteredRestaurants = restaurants.filter((restaurant) => {
     const matchesSearch =
       restaurant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -373,42 +370,30 @@ const UserDashboard: React.FC = () => {
     return matchesSearch && matchesCategory;
   });
 
-  // Filter orders
   const filteredOrders = orders.filter((order) => {
     if (orderFilter === "All") return true;
     if (orderFilter === "Active")
-      return ["pending", "confirmed", "preparing", "ready"].includes(
-        order.status,
-      );
+      return ["pending", "preparing", "ready"].includes(order.status);
     if (orderFilter === "Completed")
-      return ["delivered"].includes(order.status);
+      return ["completed", "delivered", "cancelled"].includes(order.status);
     return true;
   });
 
-  const categories = ["All", "Pizza", "Sushi", "Burgers", "Asian", "Desserts"];
+  const categories = [
+    "All",
+    ...Array.from(new Set(restaurants.map((restaurant) => restaurant.category))),
+  ];
 
   return (
-    <div
-      className="flex h-screen bg-gray-50"
-      style={{ backgroundColor: "#faf5f0" }}
-    >
-      {/* Sidebar */}
-      <div
-        className="w-64 shadow-lg flex flex-col"
-        style={{ backgroundColor: "#1a1a2e" }}
-      >
-        {/* Logo */}
-        <div className="p-6 flex items-center gap-3 border-b border-gray-700">
+    <div className="flex h-screen bg-[#faf5f0]">
+      <div className="flex w-64 flex-col bg-[#1a1a2e] shadow-lg">
+        <div className="flex items-center gap-3 border-b border-gray-700 p-6">
           <img src="/logo.png" alt="CF Company" className="h-10 w-auto" />
           <span className="text-xl font-bold text-white">CF Company</span>
         </div>
 
-        {/* User Info */}
-        <div className="p-6 flex items-center gap-4 border-b border-gray-700">
-          <div
-            className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-white text-lg"
-            style={{ backgroundColor: "#e8722a" }}
-          >
+        <div className="flex items-center gap-4 border-b border-gray-700 p-6">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#e8722a] text-lg font-bold text-white">
             {userInitial}
           </div>
           <div>
@@ -417,63 +402,40 @@ const UserDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 p-6 space-y-2">
-          <button
-            onClick={() => setActiveTab("browse")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-              activeTab === "browse"
-                ? "border-l-4 text-white"
-                : "text-gray-400 hover:text-gray-200"
-            }`}
-            style={{
-              borderLeftColor:
-                activeTab === "browse" ? "#e8722a" : "transparent",
-              color: activeTab === "browse" ? "#e8722a" : undefined,
-            }}
-          >
-            <Search size={20} />
-            <span className="font-medium">Browse</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("orders")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-              activeTab === "orders"
-                ? "border-l-4 text-white"
-                : "text-gray-400 hover:text-gray-200"
-            }`}
-            style={{
-              borderLeftColor:
-                activeTab === "orders" ? "#e8722a" : "transparent",
-              color: activeTab === "orders" ? "#e8722a" : undefined,
-            }}
-          >
-            <ShoppingBag size={20} />
-            <span className="font-medium">My Orders</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("profile")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-              activeTab === "profile"
-                ? "border-l-4 text-white"
-                : "text-gray-400 hover:text-gray-200"
-            }`}
-            style={{
-              borderLeftColor:
-                activeTab === "profile" ? "#e8722a" : "transparent",
-              color: activeTab === "profile" ? "#e8722a" : undefined,
-            }}
-          >
-            <User size={20} />
-            <span className="font-medium">Profile</span>
-          </button>
+        <nav className="flex-1 space-y-2 p-6">
+          {[
+            { id: "browse", label: "Browse & Book", icon: Search },
+            { id: "orders", label: "My Orders", icon: ShoppingBag },
+            { id: "profile", label: "Profile", icon: User },
+          ].map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() =>
+                  setActiveTab(item.id as "browse" | "orders" | "profile")
+                }
+                className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 transition-all ${
+                  isActive ? "border-l-4 text-[#e8722a]" : "text-gray-400 hover:text-gray-200"
+                }`}
+                style={{
+                  borderLeftColor: isActive ? "#e8722a" : "transparent",
+                }}
+              >
+                <Icon size={20} />
+                <span className="font-medium">{item.label}</span>
+              </button>
+            );
+          })}
         </nav>
 
-        {/* Logout */}
-        <div className="p-6 border-t border-gray-700">
+        <div className="border-t border-gray-700 p-6">
           <button
+            type="button"
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-red-400 transition-colors"
+            className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-gray-400 transition-colors hover:text-red-400"
           >
             <LogOut size={20} />
             <span className="font-medium">Logout</span>
@@ -481,78 +443,69 @@ const UserDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="flex-1 overflow-auto">
-        {/* Browse Tab */}
         {activeTab === "browse" && (
           <div className="p-8">
-            {/* Welcome Header */}
             <div className="mb-8">
-              <h1 className="text-4xl font-bold text-gray-900 mb-2">
+              <h1 className="mb-2 text-4xl font-bold text-gray-900">
                 Welcome back, {userName}!
               </h1>
               <p className="text-gray-600">
-                Discover delicious restaurants and food
+                Book a table, order online, and add your favorites to cart
               </p>
             </div>
 
-            {/* Search Bar */}
             <div className="mb-8">
               <div className="relative">
                 <Search
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
                   size={20}
                 />
                 <input
                   type="text"
                   placeholder="Search restaurants or cuisines..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white"
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  className="w-full rounded-lg border border-gray-300 bg-white py-3 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
               </div>
             </div>
 
-            {/* Category Filter */}
-            <div className="mb-8 flex gap-3 flex-wrap">
+            <div className="mb-8 flex flex-wrap gap-3">
               {categories.map((category) => (
                 <button
                   key={category}
+                  type="button"
                   onClick={() => setSelectedCategory(category)}
-                  className={`px-6 py-2 rounded-full font-medium transition-colors ${
+                  className={`rounded-full px-6 py-2 font-medium transition-colors ${
                     selectedCategory === category
-                      ? "text-white"
+                      ? "bg-[#e8722a] text-white"
                       : "bg-white text-gray-700 hover:bg-gray-100"
                   }`}
-                  style={{
-                    backgroundColor:
-                      selectedCategory === category ? "#e8722a" : undefined,
-                  }}
                 >
                   {category}
                 </button>
               ))}
             </div>
 
-            {/* Restaurant Grid */}
             {loading ? (
-              <div className="flex items-center justify-center h-64">
-                <Loader
-                  className="animate-spin"
-                  size={32}
-                  style={{ color: "#e8722a" }}
-                />
+              <div className="flex h-64 items-center justify-center">
+                <Loader className="animate-spin text-[#e8722a]" size={32} />
               </div>
             ) : filteredRestaurants.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
                 {filteredRestaurants.map((restaurant) => (
-                  <RestaurantCard key={restaurant.id} restaurant={restaurant} />
+                  <RestaurantCard
+                    key={restaurant.id}
+                    restaurant={restaurant}
+                    onBook={handleBook}
+                  />
                 ))}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center h-64">
-                <Search size={48} className="text-gray-400 mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              <div className="flex h-64 flex-col items-center justify-center">
+                <Search size={48} className="mb-4 text-gray-400" />
+                <h3 className="mb-2 text-xl font-semibold text-gray-900">
                   No restaurants found
                 </h3>
                 <p className="text-gray-600">
@@ -563,45 +516,37 @@ const UserDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* My Orders Tab */}
         {activeTab === "orders" && (
           <div className="p-8">
             <div className="mb-8">
-              <h1 className="text-4xl font-bold text-gray-900 mb-2">
+              <h1 className="mb-2 text-4xl font-bold text-gray-900">
                 My Orders
               </h1>
-              <p className="text-gray-600">Track and manage your food orders</p>
+              <p className="text-gray-600">
+                Track your table bookings and online orders
+              </p>
             </div>
 
-            {/* Filter Tabs */}
-            <div className="flex gap-4 mb-8">
+            <div className="mb-8 flex gap-4">
               {(["All", "Active", "Completed"] as const).map((filter) => (
                 <button
                   key={filter}
+                  type="button"
                   onClick={() => setOrderFilter(filter)}
                   className={`px-6 py-2 font-medium transition-colors ${
                     orderFilter === filter
-                      ? "text-white"
+                      ? "bg-[#e8722a] text-white"
                       : "bg-white text-gray-700 hover:bg-gray-100"
                   }`}
-                  style={{
-                    backgroundColor:
-                      orderFilter === filter ? "#e8722a" : undefined,
-                  }}
                 >
                   {filter}
                 </button>
               ))}
             </div>
 
-            {/* Orders List */}
             {loading ? (
-              <div className="flex items-center justify-center h-64">
-                <Loader
-                  className="animate-spin"
-                  size={32}
-                  style={{ color: "#e8722a" }}
-                />
+              <div className="flex h-64 items-center justify-center">
+                <Loader className="animate-spin text-[#e8722a]" size={32} />
               </div>
             ) : filteredOrders.length > 0 ? (
               <div className="max-w-3xl">
@@ -610,49 +555,40 @@ const UserDashboard: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center h-64">
-                <ShoppingBag size={48} className="text-gray-400 mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  No orders found
+              <div className="flex h-64 flex-col items-center justify-center">
+                <ShoppingBag size={48} className="mb-4 text-gray-400" />
+                <h3 className="mb-2 text-xl font-semibold text-gray-900">
+                  No orders yet
                 </h3>
                 <p className="text-gray-600">
-                  Start ordering from your favorite restaurants
+                  Book a table or order online from Browse & Book
                 </p>
               </div>
             )}
           </div>
         )}
 
-        {/* Profile Tab */}
         {activeTab === "profile" && (
-          <div className="p-8 max-w-2xl">
+          <div className="max-w-2xl p-8">
             <div className="mb-8">
-              <h1 className="text-4xl font-bold text-gray-900 mb-2">
+              <h1 className="mb-2 text-4xl font-bold text-gray-900">
                 My Profile
               </h1>
               <p className="text-gray-600">Update your personal information</p>
             </div>
 
             {loading ? (
-              <div className="flex items-center justify-center h-64">
-                <Loader
-                  className="animate-spin"
-                  size={32}
-                  style={{ color: "#e8722a" }}
-                />
+              <div className="flex h-64 items-center justify-center">
+                <Loader className="animate-spin text-[#e8722a]" size={32} />
               </div>
             ) : profile ? (
-              <div className="bg-white rounded-lg shadow-md p-8">
+              <div className="rounded-lg bg-white p-8 shadow-md">
                 <form
-                  onSubmit={async (e) => {
-                    e.preventDefault();
+                  onSubmit={async (event) => {
+                    event.preventDefault();
                     setSaving(true);
                     try {
-                      // In a real app, save to Supabase
-                      // await supabase.from('profiles').update(profile).eq('user_id', user?.id);
                       alert("Profile updated successfully!");
-                    } catch (error) {
-                      console.error("Error saving profile:", error);
                     } finally {
                       setSaving(false);
                     }
@@ -660,49 +596,48 @@ const UserDashboard: React.FC = () => {
                   className="space-y-6"
                 >
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="mb-2 block text-sm font-medium text-gray-700">
                       Full Name
                     </label>
                     <input
                       type="text"
                       value={profile.name}
-                      onChange={(e) =>
-                        setProfile({ ...profile, name: e.target.value })
+                      onChange={(event) =>
+                        setProfile({ ...profile, name: event.target.value })
                       }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="mb-2 block text-sm font-medium text-gray-700">
                       Email
                     </label>
                     <input
                       type="email"
                       value={profile.email}
-                      onChange={(e) =>
-                        setProfile({ ...profile, email: e.target.value })
+                      onChange={(event) =>
+                        setProfile({ ...profile, email: event.target.value })
                       }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="mb-2 block text-sm font-medium text-gray-700">
                       Phone
                     </label>
                     <input
                       type="tel"
                       value={profile.phone}
-                      onChange={(e) =>
-                        setProfile({ ...profile, phone: e.target.value })
+                      onChange={(event) =>
+                        setProfile({ ...profile, phone: event.target.value })
                       }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
                   <button
                     type="submit"
                     disabled={saving}
-                    className="w-full py-3 rounded-lg font-semibold text-white transition-colors hover:opacity-90"
-                    style={{ backgroundColor: "#e8722a" }}
+                    className="w-full rounded-lg bg-[#e8722a] py-3 font-semibold text-white transition-colors hover:opacity-90"
                   >
                     {saving ? "Saving..." : "Save Changes"}
                   </button>
@@ -712,6 +647,20 @@ const UserDashboard: React.FC = () => {
           </div>
         )}
       </div>
+
+      {bookingRestaurant && (
+        <BookingFlow
+          restaurant={bookingRestaurant}
+          profileName={userName}
+          profileEmail={user?.email || ""}
+          onClose={() => setBookingRestaurant(null)}
+          onComplete={() => {
+            if (activeTab === "orders") {
+              fetchOrders();
+            }
+          }}
+        />
+      )}
     </div>
   );
 };

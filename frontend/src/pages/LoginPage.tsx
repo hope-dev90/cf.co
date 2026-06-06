@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { Loader2 } from "lucide-react";
 import { GoogleLogin } from "@react-oauth/google";
@@ -9,11 +9,18 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const IS_GOOGLE_ENABLED =
   GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_ID.includes("YOUR_GOOGLE_CLIENT_ID");
 
+const getDashboardPath = (role: string) => {
+  if (role === "admin") return "/admin";
+  if (role === "restaurateur") return "/owner";
+  return "/dashboard";
+};
+
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { signIn, loading, googleSignIn } = useAuth();
 
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(location.state?.email || "");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -23,21 +30,32 @@ const LoginPage: React.FC = () => {
     setError("");
 
     try {
-      await signIn(email, password);
-      navigate(email === "owner@example.com" ? "/owner" : "/dashboard");
+      const profile = await signIn(email.trim(), password);
+      navigate(getDashboardPath(profile.role));
     } catch (err) {
-      setError(
+      const message =
         err instanceof Error
           ? err.message
-          : "An error occurred. Please try again.",
-      );
+          : "An error occurred. Please try again.";
+
+      if (message.toLowerCase().includes("verify your email")) {
+        navigate("/verify-email", { state: { email } });
+        return;
+      }
+
+      if (message.toLowerCase().includes("invalid credentials")) {
+        setError("Invalid email or password. Please try again.");
+        return;
+      }
+
+      setError(message);
     }
   };
 
   const handleGoogleSuccess = async (response: any) => {
     try {
-      await googleSignIn(response.credential);
-      navigate("/dashboard");
+      const profile = await googleSignIn(response.credential);
+      navigate(getDashboardPath(profile.role));
     } catch (err) {
       setError("Google login failed. Please try again.");
     }

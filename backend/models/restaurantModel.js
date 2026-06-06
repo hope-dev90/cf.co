@@ -6,12 +6,22 @@ export const addRestaurantTable = async (tableData) => {
     table_number,
     capacity,
     location_description,
+    position_x,
+    position_y,
     is_active,
   } = tableData;
   const result = await pool.query(
-    `INSERT INTO restaurant_tables (restaurant_id, table_number, capacity, location_description, is_active)
-     VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-    [restaurant_id, table_number, capacity, location_description, is_active],
+    `INSERT INTO restaurant_tables (restaurant_id, table_number, capacity, location_description, position_x, position_y, is_active)
+     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+    [
+      restaurant_id,
+      table_number,
+      capacity,
+      location_description,
+      position_x ?? 0,
+      position_y ?? 0,
+      is_active,
+    ],
   );
   return result.rows[0];
 };
@@ -33,12 +43,28 @@ export const getRestaurantTableById = async (id) => {
 };
 
 export const updateRestaurantTable = async (id, tableData) => {
-  const { table_number, capacity, location_description, is_active } = tableData;
+  const {
+    table_number,
+    capacity,
+    location_description,
+    position_x,
+    position_y,
+    is_active,
+  } = tableData;
   const result = await pool.query(
     `UPDATE restaurant_tables 
-     SET table_number = $1, capacity = $2, location_description = $3, is_active = $4, updated_at = NOW()
-     WHERE id = $5 RETURNING *`,
-    [table_number, capacity, location_description, is_active, id],
+     SET table_number = $1, capacity = $2, location_description = $3,
+         position_x = $4, position_y = $5, is_active = $6, updated_at = NOW()
+     WHERE id = $7 RETURNING *`,
+    [
+      table_number,
+      capacity,
+      location_description,
+      position_x ?? 0,
+      position_y ?? 0,
+      is_active,
+      id,
+    ],
   );
   return result.rows[0];
 };
@@ -89,11 +115,12 @@ export const getTableAvailability = async (table_id) => {
 
 export const getTableAvailabilityByDate = async (restaurant_id, date) => {
   const result = await pool.query(
-    `SELECT ta.*, rt.table_number, rt.capacity, u.name as user_name, u.email as user_email
+    `SELECT ta.*, rt.table_number, rt.capacity, rt.location_description,
+            rt.position_x, rt.position_y, u.name as user_name, u.email as user_email
      FROM table_availability ta
      JOIN restaurant_tables rt ON ta.table_id = rt.id
      LEFT JOIN users u ON ta.user_id = u.id
-     WHERE rt.restaurant_id = $1 AND ta.date = $2
+     WHERE rt.restaurant_id = $1 AND ta.date = $2 AND rt.is_active = true
      ORDER BY rt.table_number, ta.start_time`,
     [restaurant_id, date],
   );
@@ -492,6 +519,7 @@ export const createOrder = async (orderData) => {
     order_type,
     status,
     total_amount,
+    payment_method,
     notes,
     delivery_address,
     items,
@@ -504,8 +532,8 @@ export const createOrder = async (orderData) => {
     const orderResult = await client.query(
       `INSERT INTO restaurant_orders (
         user_id, restaurant_id, table_availability_id, customer_name, customer_phone, 
-        order_type, status, total_amount, notes, delivery_address
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+        order_type, status, total_amount, payment_method, notes, delivery_address
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
       [
         user_id,
         restaurant_id,
@@ -515,6 +543,7 @@ export const createOrder = async (orderData) => {
         order_type,
         status,
         total_amount,
+        payment_method,
         notes,
         delivery_address,
       ],
@@ -565,10 +594,33 @@ export const getOrderById = async (id) => {
 
 export const getOrdersByUser = async (user_id) => {
   const result = await pool.query(
-    `SELECT * FROM restaurant_orders WHERE user_id = $1 ORDER BY created_at DESC`,
+    `SELECT ro.*, r.name as restaurant_name
+     FROM restaurant_orders ro
+     LEFT JOIN restaurants r ON ro.restaurant_id = r.id
+     WHERE ro.user_id = $1
+     ORDER BY ro.created_at DESC`,
     [user_id],
   );
-  return result.rows;
+
+  const orders = result.rows;
+  if (orders.length === 0) return [];
+
+  const orderIds = orders.map((order) => order.id);
+  const itemsResult = await pool.query(
+    `SELECT * FROM order_items WHERE order_id = ANY($1::int[])`,
+    [orderIds],
+  );
+
+  const itemsByOrder = itemsResult.rows.reduce((acc, item) => {
+    if (!acc[item.order_id]) acc[item.order_id] = [];
+    acc[item.order_id].push(item);
+    return acc;
+  }, {});
+
+  return orders.map((order) => ({
+    ...order,
+    items: itemsByOrder[order.id] || [],
+  }));
 };
 
 export const getOrdersByRestaurant = async (restaurant_id, status = null) => {

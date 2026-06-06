@@ -12,6 +12,8 @@ const migrationFiles = [
   "update-add-google-id.sql",
   "update-database.sql",
   "update-table-availability.sql",
+  "update-table-positions.sql",
+  "update-order-payment.sql",
 ];
 
 const sanitizeSql = (sql) =>

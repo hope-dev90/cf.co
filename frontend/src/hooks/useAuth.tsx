@@ -22,7 +22,7 @@ interface AuthContextType {
   profile: Profile | null;
   token: string | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<Profile>;
   signUp: (
     email: string,
     password: string,
@@ -31,7 +31,7 @@ interface AuthContextType {
   ) => Promise<{ message: string }>;
   signOut: () => void;
   logout: () => void; // Alias for signOut to maintain compatibility
-  googleSignIn: (credential: string, role?: SignupRole) => Promise<void>;
+  googleSignIn: (credential: string, role?: SignupRole) => Promise<Profile>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -39,11 +39,11 @@ const AuthContext = createContext<AuthContextType>({
   profile: null,
   token: null,
   loading: false,
-  signIn: async () => {},
+  signIn: async () => ({ id: "", email: "", name: "", role: "client" }),
   signUp: async () => ({ message: "" }),
   signOut: () => {},
   logout: () => {},
-  googleSignIn: async () => {},
+  googleSignIn: async () => ({ id: "", email: "", name: "", role: "client" }),
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -86,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(token);
       setProfile(userProfile);
       setUser({ id: userProfile.id, email: userProfile.email });
+      return userProfile;
     } catch (error) {
       throw error;
     } finally {
@@ -146,6 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(token);
       setProfile(userProfile);
       setUser({ id: userProfile.id, email: userProfile.email });
+      return userProfile;
     } catch (error) {
       throw error;
     } finally {

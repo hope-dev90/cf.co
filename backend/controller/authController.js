@@ -28,6 +28,10 @@ const generateOtp = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
+const normalizeEmail = (email) => email.trim().toLowerCase();
+
+const isDevEnvironment = () => process.env.NODE_ENV !== "production";
+
 // Initialize Google OAuth client
 const googleClient = new OAuth2Client(
   process.env.GOOGLE_CLIENT_ID,
@@ -158,6 +162,8 @@ export const register = async (req, res) => {
       });
     }
 
+    const normalizedEmail = normalizeEmail(email);
+
     // Map "restaurant_owner" to "restaurateur" for consistency
     let normalizedRole = role;
     if (role === "restaurant_owner") {
@@ -171,7 +177,7 @@ export const register = async (req, res) => {
       });
     }
 
-    const existingUser = await findUserByEmail(email);
+    const existingUser = await findUserByEmail(normalizedEmail);
     if (existingUser) {
       return res.status(400).json({
         success: false,
@@ -183,19 +189,19 @@ export const register = async (req, res) => {
 
     const user = await createUser({
       name,
-      email,
+      email: normalizedEmail,
       password: hashedPassword,
       role: normalizedRole,
     });
 
     const otp = generateOtp();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-    await saveOtp(email, otp, expiresAt);
+    await saveOtp(normalizedEmail, otp, expiresAt);
 
     let emailSent = false;
     try {
       emailSent = await sendOtpEmail({
-        to: email,
+        to: normalizedEmail,
         otp,
         purpose: "verify your email",
       });
@@ -203,16 +209,17 @@ export const register = async (req, res) => {
       console.error("register email error:", emailError);
     }
 
-    if (!emailSent) {
-      await markEmailVerified(email);
-      await clearOtp(email);
+    const readyToSignIn = !emailSent || isDevEnvironment();
+    if (readyToSignIn) {
+      await markEmailVerified(normalizedEmail);
+      await clearOtp(normalizedEmail);
     }
 
     return res.status(201).json({
       success: true,
-      message: emailSent
-        ? "Registration successful! Check your email for the verification code."
-        : "Registration successful! Email is not configured, so your account is ready to use. You can sign in now.",
+      message: readyToSignIn
+        ? "Registration successful! Your account is ready to use. You can sign in now."
+        : "Registration successful! Check your email for the verification code.",
       user: {
         id: user.id,
         name: user.name,
@@ -238,6 +245,70 @@ export const register = async (req, res) => {
   }
 };
 
+export const resendOtp = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
+    }
+
+    const normalizedEmail = normalizeEmail(email);
+    const user = await findUserByEmail(normalizedEmail);
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Email not found",
+      });
+    }
+
+    if (user.is_verified) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is already verified",
+      });
+    }
+
+    const otp = generateOtp();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    await saveOtp(normalizedEmail, otp, expiresAt);
+
+    let emailSent = false;
+    try {
+      emailSent = await sendOtpEmail({
+        to: normalizedEmail,
+        otp,
+        purpose: "verify your email",
+      });
+    } catch (emailError) {
+      console.error("resendOtp email error:", emailError);
+    }
+
+    if (!emailSent || isDevEnvironment()) {
+      await markEmailVerified(normalizedEmail);
+      await clearOtp(normalizedEmail);
+      return res.status(200).json({
+        success: true,
+        message: "Your account is ready to use. You can sign in now.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "New verification code sent",
+    });
+  } catch (error) {
+    console.error("resendOtp error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+    });
+  }
+};
+
 export const verifyEmail = async (req, res) => {
   const { email, otp } = req.body;
 
@@ -249,7 +320,8 @@ export const verifyEmail = async (req, res) => {
       });
     }
 
-    const user = await verifyOtp(email, otp);
+    const normalizedEmail = normalizeEmail(email);
+    const user = await verifyOtp(normalizedEmail, otp);
     if (!user) {
       return res.status(400).json({
         success: false,
@@ -257,9 +329,9 @@ export const verifyEmail = async (req, res) => {
       });
     }
 
-    await markEmailVerified(email);
+    await markEmailVerified(normalizedEmail);
 
-    await clearOtp(email);
+    await clearOtp(normalizedEmail);
 
     return res.status(200).json({
       success: true,
@@ -274,67 +346,94 @@ export const verifyEmail = async (req, res) => {
   }
 };
 export const login = async (req, res) => {
-  const { email, password } = req.body;
+    const { email, password } = req.body;
 
-  try {
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Email and password are required",
-      });
+    console.log("Login attempt:", { email: email ? email.substring(0, 20) + '...' : 'missing', password: password ? 'provided' : 'missing' });
+
+    try {
+        if (!email || !password) {
+            console.log("Missing email or password");
+            return res.status(400).json({
+                success: false,
+                message: "Email and password are required",
+            });
+        }
+
+        const normalizedEmail = normalizeEmail(email);
+        console.log("Normalized email:", normalizedEmail);
+        
+        const user = await findUserByEmail(normalizedEmail);
+        console.log("Found user:", user ? { id: user.id, email: user.email, name: user.name } : 'NO USER FOUND');
+        
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid credentials",
+            });
+        }
+
+        if (!user.is_verified) {
+            if (isDevEnvironment()) {
+                await markEmailVerified(normalizedEmail);
+                user.is_verified = true;
+                console.log("Auto-verified user in dev mode");
+            } else {
+                return res.status(400).json({
+                    success: false,
+                    message: "Please verify your email first",
+                    requiresVerification: true,
+                });
+            }
+        }
+
+        if (!user.password) {
+            return res.status(400).json({
+                success: false,
+                message: "This account uses Google sign-in. Please log in with Google.",
+            });
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password);
+        console.log("Password match:", isMatch);
+        
+        if (!isMatch) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid credentials",
+            });
+        }
+
+        const token = generateToken(user.id, user.role);
+
+        console.log("Login successful for user:", user.email);
+
+        return res.status(200).json({
+            success: true,
+            message: "Login successful",
+            token,
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+            },
+        });
+    } catch (error) {
+        console.error("login error:", error);
+        const databaseMessage = getDatabaseErrorMessage(error);
+
+        if (databaseMessage) {
+            return res.status(500).json({
+                success: false,
+                message: databaseMessage,
+            });
+        }
+
+        return res.status(500).json({
+            success: false,
+            message: "Something went wrong",
+        });
     }
-
-    const user = await findUserByEmail(email);
-    if (!user) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid credentials",
-      });
-    }
-
-    if (!user.is_verified) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Please verify your email first" });
-    }
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid credentials",
-      });
-    }
-
-    const token = generateToken(user.id, user.role);
-
-    return res.status(200).json({
-      success: true,
-      message: "Login successful",
-      token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
-    });
-  } catch (error) {
-    console.error("login error:", error);
-    const databaseMessage = getDatabaseErrorMessage(error);
-
-    if (databaseMessage) {
-      return res.status(500).json({
-        success: false,
-        message: databaseMessage,
-      });
-    }
-
-    return res.status(500).json({
-      success: false,
-      message: "Something went wrong",
-    });
-  }
 };
 
 export const getProfile = async (req, res) => {

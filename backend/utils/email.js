@@ -52,6 +52,10 @@ export const sendOtpEmail = async ({ to, otp, purpose = 'verify your email' }) =
         return false;
     }
 
+    if (process.env.NODE_ENV !== 'production') {
+        console.log(`[DEV] OTP for ${to} (${purpose}): ${otp}`);
+    }
+
     await sendEmail({
         to,
         subject: 'C&F.co OTP code',

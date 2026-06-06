@@ -20,8 +20,7 @@ const VerifyEmail: React.FC = () => {
 
     try {
       await authApi.verifyEmail(email, otp);
-      // Redirect to login after successful verification
-      navigate("/login");
+      navigate("/login", { state: { email } });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Verification failed");
     } finally {
@@ -30,14 +29,25 @@ const VerifyEmail: React.FC = () => {
   };
 
   const handleResend = async () => {
+    if (!email) {
+      setError("Email is missing. Go back to sign up and try again.");
+      return;
+    }
+
     setError("");
     setLoading(true);
 
     try {
-      // In a real app, you'd call an API to resend the OTP
-      alert("OTP resent!");
+      const result = await authApi.resendOtp(email);
+
+      if (result.message.toLowerCase().includes("sign in now")) {
+        navigate("/login", { state: { email } });
+        return;
+      }
+
+      alert(result.message || "Verification code resent!");
     } catch (err) {
-      setError("Failed to resend OTP");
+      setError(err instanceof Error ? err.message : "Failed to resend OTP");
     } finally {
       setLoading(false);
     }

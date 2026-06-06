@@ -99,6 +99,8 @@ CREATE TABLE IF NOT EXISTS restaurant_tables (
   table_number VARCHAR(50) NOT NULL,
   capacity INTEGER NOT NULL,
   location_description VARCHAR(255),
+  position_x INTEGER DEFAULT 0,
+  position_y INTEGER DEFAULT 0,
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -131,6 +133,7 @@ CREATE TABLE IF NOT EXISTS restaurant_orders (
   order_type VARCHAR(50) NOT NULL DEFAULT 'dine-in' CHECK (order_type IN ('dine-in', 'takeaway', 'delivery')),
   status VARCHAR(50) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'preparing', 'ready', 'served', 'completed', 'cancelled')),
   total_amount DECIMAL(10, 2) NOT NULL,
+  payment_method VARCHAR(50),
   notes TEXT,
   delivery_address TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
