@@ -679,43 +679,88 @@ const BookingFlow: React.FC<BookingFlowProps> = ({
 
           {step === "checkout" && (
             <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
+              {/* Left Column: Order & Customer Details */}
               <div className="space-y-4">
-                <div className="rounded-2xl border border-gray-200 p-4">
-                  <h4 className="font-semibold text-[#1a1a2e]">
-                    Order Summary
-                  </h4>
-                  <div className="mt-3 space-y-2 text-sm text-gray-600">
-                    <p>Service: {serviceType}</p>
-                    <p>
-                      Date: {selectedDate} at {formatTime(selectedTime)}
-                    </p>
-                    {selectedTable && (
-                      <p>
-                        Table: {selectedTable.table_number} (
-                        {selectedTable.location_description || "Main floor"})
+                {/* Order Summary Card */}
+                <div className="rounded-2xl bg-[#faf5f0] p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <UtensilsCrossed className="w-6 h-6 text-[#e8722a]" />
+                    <h4 className="text-xl font-bold text-[#1a1a2e]">
+                      Booking Details
+                    </h4>
+                  </div>
+
+                  {/* Service & Timing Info */}
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="bg-white rounded-xl p-4 shadow-sm">
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Service
                       </p>
-                    )}
+                      <p className="text-sm font-semibold text-[#1a1a2e] capitalize mt-1">
+                        {serviceType}
+                      </p>
+                    </div>
+                    <div className="bg-white rounded-xl p-4 shadow-sm">
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date & Time
+                      </p>
+                      <p className="text-sm font-semibold text-[#1a1a2e] mt-1">
+                        {selectedDate} • {formatTime(selectedTime)}
+                      </p>
+                    </div>
                   </div>
-                  <div className="mt-4 space-y-2 border-t border-gray-100 pt-4">
-                    {cart.map((item) => (
-                      <div
-                        key={item.menuItemId}
-                        className="flex justify-between text-sm"
-                      >
-                        <span>
-                          {item.quantity}x {item.name}
-                        </span>
-                        <span>${(item.price * item.quantity).toFixed(2)}</span>
-                      </div>
-                    ))}
+
+                  {/* Table Info (if dine-in) */}
+                  {selectedTable && (
+                    <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Table
+                      </p>
+                      <p className="text-sm font-semibold text-[#1a1a2e] mt-1">
+                        Table {selectedTable.table_number} •{" "}
+                        {selectedTable.location_description || "Main floor"}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Items List */}
+                  <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
+                      Order Items
+                    </p>
+                    <div className="space-y-3">
+                      {cart.map((item) => (
+                        <div
+                          key={item.menuItemId}
+                          className="flex justify-between items-center"
+                        >
+                          <div>
+                            <p className="text-sm font-semibold text-[#1a1a2e]">
+                              {item.quantity}x {item.name}
+                            </p>
+                          </div>
+                          <p className="text-sm font-bold text-[#e8722a]">
+                            ${(item.price * item.quantity).toFixed(2)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <p className="mt-4 text-lg font-bold text-[#1a1a2e]">
-                    Total: ${cartTotal.toFixed(2)}
-                  </p>
+
+                  {/* Total */}
+                  <div className="bg-white rounded-xl p-4 shadow-sm border-2 border-[#e8722a]">
+                    <div className="flex justify-between items-center">
+                      <p className="text-lg font-bold text-[#1a1a2e]">Total</p>
+                      <p className="text-2xl font-extrabold text-[#e8722a]">
+                        ${cartTotal.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                {/* Phone Number Input */}
+                <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+                  <label className="mb-3 block text-sm font-semibold text-[#1a1a2e]">
                     Phone Number
                   </label>
                   <input
@@ -723,14 +768,15 @@ const BookingFlow: React.FC<BookingFlowProps> = ({
                     value={customerPhone}
                     onChange={(event) => setCustomerPhone(event.target.value)}
                     placeholder="+1 555 000 0000"
-                    className="w-full rounded-xl border border-gray-300 px-4 py-3"
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 transition-all focus:outline-none focus:border-[#e8722a] focus:bg-white"
                   />
                 </div>
 
+                {/* Delivery Address (if needed) */}
                 {serviceType === "delivery" && (
-                  <div>
-                    <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
-                      <MapPin size={16} />
+                  <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+                    <label className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#1a1a2e]">
+                      <MapPin size={18} className="text-[#e8722a]" />
                       Delivery Address
                     </label>
                     <textarea
@@ -739,13 +785,15 @@ const BookingFlow: React.FC<BookingFlowProps> = ({
                         setDeliveryAddress(event.target.value)
                       }
                       rows={3}
-                      className="w-full rounded-xl border border-gray-300 px-4 py-3"
+                      placeholder="123 Main St, City, State"
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 transition-all focus:outline-none focus:border-[#e8722a] focus:bg-white"
                     />
                   </div>
                 )}
 
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                {/* Special Requests */}
+                <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+                  <label className="mb-3 block text-sm font-semibold text-[#1a1a2e]">
                     Special Requests
                   </label>
                   <textarea
@@ -753,64 +801,81 @@ const BookingFlow: React.FC<BookingFlowProps> = ({
                     onChange={(event) => setNotes(event.target.value)}
                     rows={2}
                     placeholder="Allergies, celebrations, seating preferences..."
-                    className="w-full rounded-xl border border-gray-300 px-4 py-3"
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 transition-all focus:outline-none focus:border-[#e8722a] focus:bg-white"
                   />
                 </div>
               </div>
 
-              <div>
-                <h4 className="mb-3 flex items-center gap-2 font-semibold text-[#1a1a2e]">
-                  <CreditCard size={18} />
-                  Payment Method
-                </h4>
-                <div className="space-y-2">
-                  {PAYMENT_OPTIONS.map((option) => (
-                    <button
-                      key={option.id}
-                      type="button"
-                      onClick={() => setPaymentMethod(option.id)}
-                      className={`w-full rounded-xl border-2 px-4 py-3 text-left text-sm font-medium ${
-                        paymentMethod === option.id
-                          ? "border-[#e8722a] bg-[#fff5f0] text-[#1a1a2e]"
-                          : "border-gray-200 text-gray-700"
-                      }`}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
+              {/* Right Column: Payment Method */}
+              <div className="space-y-4">
+                <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm h-full">
+                  <h4 className="mb-4 flex items-center gap-2 text-lg font-bold text-[#1a1a2e]">
+                    <CreditCard size={20} className="text-[#e8722a]" />
+                    Payment Method
+                  </h4>
+                  <div className="space-y-3">
+                    {PAYMENT_OPTIONS.map((option) => (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => setPaymentMethod(option.id)}
+                        className={`w-full rounded-xl border-2 px-5 py-4 text-left text-sm font-semibold transition-all ${
+                          paymentMethod === option.id
+                            ? "border-[#e8722a] bg-[#fff5f0] text-[#1a1a2e] shadow-md"
+                            : "border-gray-200 text-gray-700 hover:border-[#e8722a] hover:bg-gray-50"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-6 text-xs text-gray-500 leading-relaxed bg-gray-50 p-3 rounded-lg">
+                    🔒 Logged in as{" "}
+                    <span className="font-medium text-gray-700">
+                      {profileEmail}
+                    </span>
+                    . Payment is recorded with your booking; no real charge is
+                    processed in this demo.
+                  </p>
                 </div>
-                <p className="mt-4 text-xs text-gray-500">
-                  Logged in as {profileEmail}. Payment is recorded with your
-                  booking; no real charge is processed in this demo.
-                </p>
               </div>
             </div>
           )}
 
           {step === "done" && (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-green-600">
-                <Check size={32} />
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-green-100 to-emerald-100 text-green-600 shadow-xl">
+                <Check size={48} />
               </div>
-              <h3 className="text-2xl font-bold text-[#1a1a2e]">
-                Booking Confirmed!
+              <h3 className="text-3xl font-extrabold text-[#1a1a2e] mb-3">
+                Booking Confirmed! 🎉
               </h3>
-              <p className="mt-2 max-w-md text-gray-600">
+              <p className="text-gray-600 max-w-md leading-relaxed mb-6">
                 Your {serviceType === "dine-in" ? "table reservation and " : ""}
-                order at {restaurant.name} has been placed successfully.
+                order at{" "}
+                <span className="font-semibold text-[#1a1a2e]">
+                  {restaurant.name}
+                </span>{" "}
+                has been placed successfully.
               </p>
+              <div className="bg-[#faf5f0] rounded-2xl px-8 py-6 max-w-sm w-full">
+                <p className="text-sm text-gray-600 mb-2">Order Total</p>
+                <p className="text-4xl font-extrabold text-[#e8722a]">
+                  ${cartTotal.toFixed(2)}
+                </p>
+              </div>
             </div>
           )}
         </div>
 
         {step !== "done" && (
-          <div className="flex items-center justify-between border-t border-gray-100 px-6 py-4">
+          <div className="flex items-center justify-between border-t border-gray-100 px-6 py-5">
             <button
               type="button"
               onClick={step === "service" ? onClose : goBack}
-              className="flex items-center gap-2 rounded-xl px-4 py-2 text-gray-600 hover:bg-gray-100"
+              className="flex items-center gap-2 rounded-xl px-6 py-3 text-gray-600 font-semibold hover:bg-gray-100 transition-all"
             >
-              <ArrowLeft size={16} />
+              <ArrowLeft size={18} />
               {step === "service" ? "Cancel" : "Back"}
             </button>
 
@@ -819,14 +884,14 @@ const BookingFlow: React.FC<BookingFlowProps> = ({
                 type="button"
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="flex items-center gap-2 rounded-xl bg-[#e8722a] px-6 py-3 font-semibold text-white hover:bg-[#d4651f] disabled:opacity-50"
+                className="flex items-center gap-3 rounded-xl bg-gradient-to-r from-[#e8722a] to-[#d4651f] px-8 py-4 font-bold text-white shadow-lg hover:shadow-xl hover:from-[#d4651f] hover:to-[#c4561f] disabled:opacity-50 disabled:shadow-none transition-all"
               >
                 {submitting ? (
-                  <Loader2 className="animate-spin" size={18} />
+                  <Loader2 className="animate-spin" size={20} />
                 ) : (
                   <>
                     Confirm Booking
-                    <Check size={16} />
+                    <Check size={20} />
                   </>
                 )}
               </button>
@@ -834,21 +899,21 @@ const BookingFlow: React.FC<BookingFlowProps> = ({
               <button
                 type="button"
                 onClick={handleNext}
-                className="flex items-center gap-2 rounded-xl bg-[#1a1a2e] px-6 py-3 font-semibold text-white hover:bg-[#0f0f1e]"
+                className="flex items-center gap-2 rounded-xl bg-[#1a1a2e] px-8 py-3 font-bold text-white hover:bg-[#0f0f1e] shadow-md hover:shadow-lg transition-all"
               >
                 Continue
-                <ArrowRight size={16} />
+                <ArrowRight size={18} />
               </button>
             )}
           </div>
         )}
 
         {step === "done" && (
-          <div className="border-t border-gray-100 px-6 py-4">
+          <div className="border-t border-gray-100 px-6 py-5">
             <button
               type="button"
               onClick={onClose}
-              className="w-full rounded-xl bg-[#1a1a2e] px-6 py-3 font-semibold text-white"
+              className="w-full rounded-xl bg-gradient-to-r from-[#1a1a2e] to-[#2d2d4a] px-8 py-4 font-bold text-white shadow-lg hover:shadow-xl transition-all"
             >
               Done
             </button>
