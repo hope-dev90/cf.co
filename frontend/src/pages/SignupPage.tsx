@@ -168,7 +168,7 @@ const SignupPage: React.FC = () => {
       {/* RIGHT */}
       <div className="hidden lg:flex lg:w-1/2 items-center justify-center bg-[#1a1a2e] text-white items-center justify-center overflow-hidden p-8">
         <img
-          src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&h=1200&fit=crop"
+          src="https://i.pinimg.com/736x/b1/8a/84/b18a84834c9fd0373ae6b92a08214130.jpg"
           alt="CF Company Welcome"
           className="max-h-[80vh] w-auto rounded-3xl object-cover shadow-2xl"
         />
