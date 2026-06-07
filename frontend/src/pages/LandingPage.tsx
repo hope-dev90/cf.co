@@ -13,6 +13,7 @@ import {
   Twitter,
 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
+import { restaurantApi } from "../lib/api";
 
 interface NavLinkProps {
   href: string;
@@ -22,9 +23,8 @@ interface NavLinkProps {
 interface RestaurantCard {
   id: number;
   name: string;
-  cuisine: string;
-  rating: number;
-  image: string;
+  cuisine_type: string;
+  image?: string;
 }
 
 interface TestimonialCard {
@@ -39,6 +39,8 @@ export default function LandingPage() {
   const { user } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [restaurants, setRestaurants] = useState<RestaurantCard[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -49,45 +51,34 @@ export default function LandingPage() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  useEffect(() => {
+    const fetchRestaurants = async () => {
+      try {
+        const data = await restaurantApi.getAll();
+        if (data.success && data.restaurants) {
+          setRestaurants(data.restaurants);
+        }
+      } catch (err) {
+        console.error("Error fetching restaurants:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRestaurants();
+  }, []);
+
   const navLinks: NavLinkProps[] = [
     { href: "#restaurants", label: "Restaurants" },
     { href: "#how-it-works", label: "How It Works" },
     { href: "#about", label: "About" },
   ];
 
-  const restaurants: RestaurantCard[] = [
-    {
-      id: 1,
-      name: "The Gourmet Kitchen",
-      cuisine: "Modern European",
-      rating: 4.8,
-      image:
-        "https://images.pexels.com/photos/1059905/pexels-photo-1059905.jpeg?auto=compress&cs=tinysrgb&w=400",
-    },
-    {
-      id: 2,
-      name: "Spice Haven",
-      cuisine: "Indian & Asian",
-      rating: 4.7,
-      image:
-        "https://images.pexels.com/photos/1410235/pexels-photo-1410235.jpeg?auto=compress&cs=tinysrgb&w=400",
-    },
-    {
-      id: 3,
-      name: "La Pasta House",
-      cuisine: "Italian",
-      rating: 4.9,
-      image:
-        "https://images.pexels.com/photos/1092730/pexels-photo-1092730.jpeg?auto=compress&cs=tinysrgb&w=400",
-    },
-    {
-      id: 4,
-      name: "Flame & Co",
-      cuisine: "Grilled & BBQ",
-      rating: 4.6,
-      image:
-        "https://images.pexels.com/photos/1624487/pexels-photo-1624487.jpeg?auto=compress&cs=tinysrgb&w=400",
-    },
+  const defaultImages = [
+    "https://images.pexels.com/photos/1059905/pexels-photo-1059905.jpeg?auto=compress&cs=tinysrgb&w=400",
+    "https://images.pexels.com/photos/1410235/pexels-photo-1410235.jpeg?auto=compress&cs=tinysrgb&w=400",
+    "https://images.pexels.com/photos/1092730/pexels-photo-1092730.jpeg?auto=compress&cs=tinysrgb&w=400",
+    "https://images.pexels.com/photos/1624487/pexels-photo-1624487.jpeg?auto=compress&cs=tinysrgb&w=400",
   ];
 
   const testimonials: TestimonialCard[] = [
@@ -404,52 +395,58 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {restaurants.map((restaurant) => (
-              <div
-                key={restaurant.id}
-                className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group cursor-pointer transform hover:-translate-y-1"
-              >
-                {/* Image Container */}
-                <div className="relative h-48 overflow-hidden bg-gray-100">
-                  <img
-                    src={restaurant.image}
-                    alt={restaurant.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a2e]/20 via-transparent to-transparent" />
-                </div>
-
-                {/* Content */}
-                <div className="p-5">
-                  <h3 className="text-xl font-bold text-[#1a1a2e] mb-1 line-clamp-1">
-                    {restaurant.name}
-                  </h3>
-                  <p className="text-sm text-[#4a4a68] mb-4">
-                    {restaurant.cuisine}
-                  </p>
-
-                  {/* Rating */}
-                  <div className="flex items-center gap-2 pt-4 border-t border-gray-100">
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star
-                          key={i}
-                          size={16}
-                          className={
-                            i < Math.floor(restaurant.rating)
-                              ? "fill-[#e8722a] text-[#e8722a]"
-                              : "text-gray-300"
-                          }
-                        />
-                      ))}
-                    </div>
-                    <span className="text-sm font-bold text-[#1a1a2e]">
-                      {restaurant.rating}
-                    </span>
+            {loading ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="bg-white rounded-xl overflow-hidden shadow-md animate-pulse"
+                >
+                  <div className="h-48 bg-gray-200" />
+                  <div className="p-5 space-y-3">
+                    <div className="h-6 bg-gray-200 rounded w-3/4" />
+                    <div className="h-4 bg-gray-200 rounded w-1/2" />
+                    <div className="h-4 bg-gray-200 rounded w-1/4" />
                   </div>
                 </div>
+              ))
+            ) : restaurants.length === 0 ? (
+              <div className="col-span-full text-center py-16">
+                <p className="text-lg text-gray-500">
+                  No restaurants yet! Sign up as a restaurant owner to add the
+                  first one!
+                </p>
               </div>
-            ))}
+            ) : (
+              restaurants.slice(0, 4).map((restaurant, index) => (
+                <div
+                  key={restaurant.id}
+                  className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group cursor-pointer transform hover:-translate-y-1"
+                >
+                  {/* Image Container */}
+                  <div className="relative h-48 overflow-hidden bg-gray-100">
+                    <img
+                      src={
+                        restaurant.image ||
+                        defaultImages[index % defaultImages.length]
+                      }
+                      alt={restaurant.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a2e]/20 via-transparent to-transparent" />
+                  </div>
+
+                  {/* Content */}
+                  <div className="p-5">
+                    <h3 className="text-xl font-bold text-[#1a1a2e] mb-1 line-clamp-1">
+                      {restaurant.name}
+                    </h3>
+                    <p className="text-sm text-[#4a4a68] mb-4">
+                      {restaurant.cuisine_type}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
           <div className="flex md:hidden justify-center pt-12">

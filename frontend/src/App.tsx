@@ -7,6 +7,7 @@ import VerifyEmail from "./pages/VerifyEmail";
 import UserDashboard from "./pages/UserDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import OwnerDashboard from "./pages/OwnerDashboard";
+import BrowseRestaurants from "./pages/BrowseRestaurants";
 
 function ProtectedRoute({
   children,
@@ -55,6 +56,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      <Route path="/restaurants" element={<BrowseRestaurants />} />
       <Route
         path="/login"
         element={
