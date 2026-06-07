@@ -14,6 +14,7 @@ const migrationFiles = [
   "update-table-availability.sql",
   "update-table-positions.sql",
   "update-order-payment.sql",
+  "add-restaurant-active.sql",
 ];
 
 const sanitizeSql = (sql) =>

@@ -68,9 +68,17 @@ const restaurantRouter = express.Router();
 restaurantRouter.post("/", authMiddleware, createRestaurantController);
 restaurantRouter.get("/", getAllRestaurantsController);
 restaurantRouter.get("/my", authMiddleware, getMyRestaurantsController);
+
+// ------------------------------
+// Admin (must be before /:id to avoid param collision)
+// ------------------------------
+restaurantRouter.get("/admin/stats", authMiddleware, adminOnly, getAdminStatsController);
+restaurantRouter.get("/admin/orders", authMiddleware, adminOnly, getAllOrdersController);
+
 restaurantRouter.get("/:id", getRestaurantByIdController);
 restaurantRouter.put("/:id", authMiddleware, updateRestaurantController);
 restaurantRouter.delete("/:id", authMiddleware, deleteRestaurantController);
+restaurantRouter.patch("/:id/status", authMiddleware, adminOnly, updateRestaurantStatusController);
 
 // ------------------------------
 // Restaurant Locations
@@ -243,12 +251,5 @@ restaurantRouter.get(
   authMiddleware,
   getOrdersByStatusController,
 );
-
-// ------------------------------
-// Admin
-// ------------------------------
-restaurantRouter.get("/admin/stats", authMiddleware, adminOnly, getAdminStatsController);
-restaurantRouter.get("/admin/orders", authMiddleware, adminOnly, getAllOrdersController);
-restaurantRouter.patch("/:id/status", authMiddleware, adminOnly, updateRestaurantStatusController);
 
 export default restaurantRouter;

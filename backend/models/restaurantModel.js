@@ -857,31 +857,42 @@ export const getOrdersByStatus = async (restaurant_id) => {
 // ------------------------------
 
 export const getAdminStats = async () => {
-  const result = await pool.query(`
-    SELECT
-      (SELECT COUNT(*) FROM users) AS total_users,
-      (SELECT COUNT(*) FROM restaurants) AS total_restaurants,
-      (SELECT COUNT(*) FROM restaurant_orders) AS total_orders,
-      (SELECT COALESCE(SUM(total_amount), 0) FROM restaurant_orders WHERE status NOT IN ('cancelled')) AS total_revenue
-  `);
+  const usersRes = await pool.query(`SELECT COUNT(*) FROM users`);
+  const restaurantsRes = await pool.query(`SELECT COUNT(*) FROM restaurants`);
+  
+  let total_orders = 0;
+  let total_revenue = 0;
+  try {
+    const ordersRes = await pool.query(`SELECT COUNT(*) FROM restaurant_orders`);
+    const revenueRes = await pool.query(`SELECT COALESCE(SUM(total_amount), 0) FROM restaurant_orders WHERE status NOT IN ('cancelled')`);
+    total_orders = Number(ordersRes.rows[0].count);
+    total_revenue = Number(revenueRes.rows[0].coalesce);
+  } catch {
+    // table may not exist yet
+  }
+
   return {
-    total_users: Number(result.rows[0].total_users),
-    total_restaurants: Number(result.rows[0].total_restaurants),
-    total_orders: Number(result.rows[0].total_orders),
-    total_revenue: Number(result.rows[0].total_revenue),
+    total_users: Number(usersRes.rows[0].count),
+    total_restaurants: Number(restaurantsRes.rows[0].count),
+    total_orders,
+    total_revenue,
   };
 };
 
 export const getAllOrders = async () => {
-  const result = await pool.query(`
-    SELECT ro.*, r.name AS restaurant_name, u.name AS user_name, u.email AS user_email
-    FROM restaurant_orders ro
-    LEFT JOIN restaurants r ON ro.restaurant_id = r.id
-    LEFT JOIN users u ON ro.user_id = u.id
-    ORDER BY ro.created_at DESC
-    LIMIT 200
-  `);
-  return result.rows.map((o) => ({ ...o, total_amount: Number(o.total_amount) }));
+  try {
+    const result = await pool.query(`
+      SELECT ro.*, r.name AS restaurant_name, u.name AS user_name, u.email AS user_email
+      FROM restaurant_orders ro
+      LEFT JOIN restaurants r ON ro.restaurant_id = r.id
+      LEFT JOIN users u ON ro.user_id = u.id
+      ORDER BY ro.created_at DESC
+      LIMIT 200
+    `);
+    return result.rows.map((o) => ({ ...o, total_amount: Number(o.total_amount) }));
+  } catch {
+    return [];
+  }
 };
 
 export const updateRestaurantStatus = async (id, is_active) => {
