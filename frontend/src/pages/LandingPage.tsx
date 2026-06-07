@@ -4,7 +4,6 @@ import {
   Search,
   ShoppingCart,
   Bike,
-  Star,
   ArrowRight,
   Menu,
   X,

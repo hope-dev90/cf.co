@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, ArrowLeft, Star, Plus } from "lucide-react";
+import { Search, ArrowLeft, Plus } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { restaurantApi } from "../lib/api";
 

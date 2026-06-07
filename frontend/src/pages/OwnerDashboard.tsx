@@ -181,12 +181,12 @@ const OwnerDashboard: React.FC = () => {
 
   // Dashboard state
   const [todayOrders, setTodayOrders] = useState(0);
-  const [todayOrdersTrend, setTodayOrdersTrend] = useState(0);
+  const [todayOrdersTrend] = useState(0);
   const [revenueToday, setRevenueToday] = useState(0);
-  const [revenueTrend, setRevenueTrend] = useState(0);
+  const [revenueTrend] = useState(0);
   const [pendingOrders, setPendingOrders] = useState(0);
-  const [avgRating, setAvgRating] = useState(4.5);
-  const [ratingTrend, setRatingTrend] = useState(0);
+  const [avgRating] = useState(4.5);
+  const [ratingTrend] = useState(0);
 
   // Menu state
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);

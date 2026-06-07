@@ -404,7 +404,7 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
 
 // Users Tab
 const UsersTab: React.FC = () => {
-  const [users, setUsers] = useState<User[]>(generateSampleUsers());
+  const [users] = useState<User[]>(generateSampleUsers());
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
@@ -659,7 +659,7 @@ const RestaurantsTab: React.FC = () => {
 
 // Orders Tab
 const OrdersTab: React.FC = () => {
-  const [orders, setOrders] = useState<Order[]>(generateSampleOrders());
+  const [orders] = useState<Order[]>(generateSampleOrders());
   const [activeFilter, setActiveFilter] = useState<
     "all" | "pending" | "active" | "completed" | "cancelled"
   >("all");

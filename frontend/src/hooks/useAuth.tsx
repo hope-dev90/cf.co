@@ -28,6 +28,7 @@ interface AuthContextType {
     password: string,
     fullName: string,
     role: SignupRole,
+    restaurantData?: Record<string, unknown>,
   ) => Promise<{ message: string }>;
   signOut: () => void;
   logout: () => void; // Alias for signOut to maintain compatibility
@@ -57,11 +58,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const savedToken = localStorage.getItem("auth_token");
     const savedProfile = localStorage.getItem("auth_profile");
     if (savedToken && savedProfile) {
+      const parsedProfile = JSON.parse(savedProfile) as Profile;
       setToken(savedToken);
-      setProfile(JSON.parse(savedProfile));
+      setProfile(parsedProfile);
       setUser({
-        id: JSON.parse(savedProfile).id,
-        email: JSON.parse(savedProfile).email,
+        id: parsedProfile.id,
+        email: parsedProfile.email,
       });
     }
     setLoading(false);
@@ -72,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const data = await authApi.login(email, password);
 
-      const token = data.token;
+      const token = data.token as string;
       const userProfile = {
         id: data.user.id,
         email: data.user.email,
@@ -111,10 +113,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email,
         password,
         backendRole,
-        restaurantData
+        restaurantData,
       );
 
-      return { message: data.message };
+      return { message: data.message || "" };
     } catch (error) {
       throw error;
     } finally {
@@ -135,7 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const data = await authApi.googleLogin(credential, role);
 
-      const token = data.token;
+      const token = data.token as string;
       const userProfile = {
         id: data.user.id,
         email: data.user.email,
