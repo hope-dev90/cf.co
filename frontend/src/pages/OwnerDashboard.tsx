@@ -8,6 +8,7 @@ import {
   ApiOrder,
   ApiMenuItem,
   ApiTable,
+  ApiWaiter,
 } from "../lib/api";
 
 interface Order {
@@ -36,6 +37,7 @@ const OwnerDashboard: React.FC = () => {
     | "analytics"
     | "settings"
     | "tables"
+    | "waiters"
     | "categories"
     | "availability"
     | "promotions"
@@ -48,6 +50,26 @@ const OwnerDashboard: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [menuItems, setMenuItems] = useState<ApiMenuItem[]>([]);
   const [tables, setTables] = useState<ApiTable[]>([]);
+  const [waiters, setWaiters] = useState<ApiWaiter[]>([]);
+  const [showAddTableModal, setShowAddTableModal] = useState(false);
+  const [showAddWaiterModal, setShowAddWaiterModal] = useState(false);
+  const [editingTable, setEditingTable] = useState<ApiTable | null>(null);
+  const [editingWaiter, setEditingWaiter] = useState<ApiWaiter | null>(null);
+
+  // Form states
+  const [tableForm, setTableForm] = useState({
+    table_number: "",
+    capacity: 2,
+    location_description: "",
+    position_x: 0,
+    position_y: 0,
+    is_active: true,
+  });
+  const [waiterForm, setWaiterForm] = useState({
+    name: "",
+    phone: "",
+    is_active: true,
+  });
 
   const formatNumber = (num: number): string => {
     return `$${num.toFixed(2)}`;
@@ -92,11 +114,13 @@ const OwnerDashboard: React.FC = () => {
           const rest = restaurantData.restaurants[0];
           setRestaurant(rest);
 
-          const [ordersData, menuData, tablesData] = await Promise.all([
-            orderApi.getByRestaurant(rest.id),
-            restaurantApi.getMenu(rest.id),
-            restaurantApi.getTables(rest.id),
-          ]);
+          const [ordersData, menuData, tablesData, waitersData] =
+            await Promise.all([
+              orderApi.getByRestaurant(rest.id),
+              restaurantApi.getMenu(rest.id),
+              restaurantApi.getTables(rest.id),
+              restaurantApi.getWaiters(rest.id),
+            ]);
 
           const formattedOrders: Order[] = (ordersData.orders || []).map(
             (order: ApiOrder) => ({
@@ -112,6 +136,7 @@ const OwnerDashboard: React.FC = () => {
           setOrders(formattedOrders);
           setMenuItems(menuData.menuItems || []);
           setTables(tablesData.tables || []);
+          setWaiters(waitersData.waiters || []);
 
           const today = new Date().toDateString();
           const todayOrderList = formattedOrders.filter(
@@ -125,8 +150,8 @@ const OwnerDashboard: React.FC = () => {
             formattedOrders.filter((o) => o.status === "pending").length,
           );
         }
-      } catch (err) {
-        console.error("Error fetching data:", err);
+      } catch (error) {
+        console.error("Error fetching data:", error);
       } finally {
         setLoading(false);
       }
@@ -134,7 +159,10 @@ const OwnerDashboard: React.FC = () => {
     fetchData();
   }, []);
 
-  const handleUpdateOrderStatus = async (id: string, newStatus: string) => {
+  const handleUpdateOrderStatus = async (
+    id: string,
+    newStatus: string,
+  ): Promise<void> => {
     try {
       await orderApi.updateStatus(id, newStatus);
       setOrders((prev) =>
@@ -142,21 +170,123 @@ const OwnerDashboard: React.FC = () => {
           order.id === id ? { ...order, status: newStatus as any } : order,
         ),
       );
-
-      setPendingOrders(() => {
-        let count = 0;
-        orders.forEach((o) => {
-          if (o.id === id) {
-            if (newStatus === "pending") count++;
-          } else if (o.status === "pending") {
-            count++;
-          }
-        });
-        return count;
-      });
-    } catch (err) {
-      console.error("Error updating order status:", err);
+    } catch (error) {
+      console.error("Error updating order status:", error);
     }
+  };
+
+  const handleAddOrUpdateTable = async (): Promise<void> => {
+    if (!restaurant) return;
+    try {
+      if (editingTable) {
+        const data = await restaurantApi.updateTable(
+          editingTable.id,
+          tableForm,
+        );
+        if (data.table) {
+          setTables((prev) =>
+            prev.map((t) => (t.id === editingTable.id ? data.table! : t)),
+          );
+        }
+      } else {
+        const data = await restaurantApi.addTable(restaurant.id, tableForm);
+        if (data.table) {
+          setTables((prev) => [...prev, data.table]);
+        }
+      }
+      setShowAddTableModal(false);
+      resetTableForm();
+    } catch (error) {
+      console.error("Error saving table:", error);
+    }
+  };
+
+  const handleDeleteTable = async (tableId: number): Promise<void> => {
+    try {
+      await restaurantApi.deleteTable(tableId);
+      setTables((prev) => prev.filter((t) => t.id !== tableId));
+    } catch (error) {
+      console.error("Error deleting table:", error);
+    }
+  };
+
+  const handleEditTable = (table: ApiTable): void => {
+    setEditingTable(table);
+    setTableForm({
+      table_number: table.table_number,
+      capacity: table.capacity,
+      location_description: table.location_description || "",
+      position_x: table.position_x,
+      position_y: table.position_y,
+      is_active: table.is_active,
+    });
+    setShowAddTableModal(true);
+  };
+
+  const resetTableForm = (): void => {
+    setTableForm({
+      table_number: "",
+      capacity: 2,
+      location_description: "",
+      position_x: 0,
+      position_y: 0,
+      is_active: true,
+    });
+    setEditingTable(null);
+  };
+
+  const handleAddOrUpdateWaiter = async (): Promise<void> => {
+    if (!restaurant) return;
+    try {
+      if (editingWaiter) {
+        const data = await restaurantApi.updateWaiter(
+          editingWaiter.id,
+          waiterForm,
+        );
+        if (data.waiter) {
+          setWaiters((prev) =>
+            prev.map((w) => (w.id === editingWaiter.id ? data.waiter! : w)),
+          );
+        }
+      } else {
+        const data = await restaurantApi.addWaiter(restaurant.id, waiterForm);
+        if (data.waiter) {
+          setWaiters((prev) => [...prev, data.waiter]);
+        }
+      }
+      setShowAddWaiterModal(false);
+      resetWaiterForm();
+    } catch (error) {
+      console.error("Error saving waiter:", error);
+    }
+  };
+
+  const handleDeleteWaiter = async (waiterId: number): Promise<void> => {
+    try {
+      await restaurantApi.deleteWaiter(waiterId);
+      setWaiters((prev) => prev.filter((w) => w.id !== waiterId));
+    } catch (error) {
+      console.error("Error deleting waiter:", error);
+    }
+  };
+
+  const handleEditWaiter = (waiter: ApiWaiter): void => {
+    setEditingWaiter(waiter);
+    setWaiterForm({
+      name: waiter.name,
+      phone: waiter.phone || "",
+      is_active: waiter.is_active,
+    });
+    setShowAddWaiterModal(true);
+  };
+
+  const resetWaiterForm = (): void => {
+    setWaiterForm({
+      name: "",
+      phone: "",
+      is_active: true,
+    });
+    setEditingWaiter(null);
   };
 
   if (loading) {
@@ -209,6 +339,7 @@ const OwnerDashboard: React.FC = () => {
               { id: "menu", label: "Menu", icon: "menu_book" },
               { id: "orders", label: "Orders", icon: "shopping_bag" },
               { id: "tables", label: "Tables", icon: "table_restaurant" },
+              { id: "waiters", label: "Waiters", icon: "person" },
               { id: "analytics", label: "Analytics", icon: "bar_chart" },
               { id: "settings", label: "Settings", icon: "settings" },
             ].map((item) => (
@@ -621,10 +752,10 @@ const OwnerDashboard: React.FC = () => {
                       </p>
                       <p
                         className={`text-xs mt-1 ${
-                          item.is_available ? "text-green-600" : "text-red-600"
+                          item.is_active ? "text-green-600" : "text-red-600"
                         }`}
                       >
-                        {item.is_available ? "Available" : "Not Available"}
+                        {item.is_active ? "Available" : "Not Available"}
                       </p>
                     </div>
                   ))}
@@ -718,25 +849,57 @@ const OwnerDashboard: React.FC = () => {
 
         {activeTab === "tables" && (
           <section className="px-8 mt-8 max-w-screen-2xl mx-auto">
-            <div className="mb-8">
-              <h2 className="font-display-lg text-2xl text-on-surface tracking-tight">
-                Table Management
-              </h2>
-              <p className="font-body-lg text-base text-on-surface-variant mt-2">
-                Manage your restaurant tables
-              </p>
+            <div className="mb-8 flex justify-between items-center">
+              <div>
+                <h2 className="font-display-lg text-2xl text-on-surface tracking-tight">
+                  Table Management
+                </h2>
+                <p className="font-body-lg text-base text-on-surface-variant mt-2">
+                  Manage your restaurant tables
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  resetTableForm();
+                  setShowAddTableModal(true);
+                }}
+                className="bg-primary-container text-on-primary hover:opacity-90 active:scale-95 px-6 py-3 rounded-xl font-headline-sm text-sm transition-all flex items-center shadow-md"
+              >
+                <span className="material-symbols-outlined mr-2">add</span>
+                Add Table
+              </button>
             </div>
             <div className="bg-white rounded-xl p-6 custom-shadow">
               {tables.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {tables.map((table) => (
                     <div
                       key={table.id}
                       className="border border-gray-200 rounded-lg p-4"
                     >
-                      <h3 className="font-semibold">
-                        Table {table.table_number}
-                      </h3>
+                      <div className="flex justify-between">
+                        <h3 className="font-semibold">
+                          Table {table.table_number}
+                        </h3>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleEditTable(table)}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            <span className="material-symbols-outlined text-lg">
+                              edit
+                            </span>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTable(table.id)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            <span className="material-symbols-outlined text-lg">
+                              delete
+                            </span>
+                          </button>
+                        </div>
+                      </div>
                       <p className="text-sm text-gray-600 mt-1">
                         Capacity: {table.capacity} people
                       </p>
@@ -758,6 +921,81 @@ const OwnerDashboard: React.FC = () => {
               ) : (
                 <p className="text-on-surface-variant text-sm">
                   No tables yet. Add your first table!
+                </p>
+              )}
+            </div>
+          </section>
+        )}
+
+        {activeTab === "waiters" && (
+          <section className="px-8 mt-8 max-w-screen-2xl mx-auto">
+            <div className="mb-8 flex justify-between items-center">
+              <div>
+                <h2 className="font-display-lg text-2xl text-on-surface tracking-tight">
+                  Waiter Management
+                </h2>
+                <p className="font-body-lg text-base text-on-surface-variant mt-2">
+                  Manage your restaurant staff
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  resetWaiterForm();
+                  setShowAddWaiterModal(true);
+                }}
+                className="bg-primary-container text-on-primary hover:opacity-90 active:scale-95 px-6 py-3 rounded-xl font-headline-sm text-sm transition-all flex items-center shadow-md"
+              >
+                <span className="material-symbols-outlined mr-2">add</span>
+                Add Waiter
+              </button>
+            </div>
+            <div className="bg-white rounded-xl p-6 custom-shadow">
+              {waiters.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {waiters.map((waiter) => (
+                    <div
+                      key={waiter.id}
+                      className="border border-gray-200 rounded-lg p-4"
+                    >
+                      <div className="flex justify-between items-center">
+                        <h3 className="font-semibold">{waiter.name}</h3>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleEditWaiter(waiter)}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            <span className="material-symbols-outlined text-lg">
+                              edit
+                            </span>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteWaiter(waiter.id)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            <span className="material-symbols-outlined text-lg">
+                              delete
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+                      {waiter.phone && (
+                        <p className="text-sm text-gray-600 mt-1">
+                          Phone: {waiter.phone}
+                        </p>
+                      )}
+                      <p
+                        className={`text-xs mt-2 ${
+                          waiter.is_active ? "text-green-600" : "text-red-600"
+                        }`}
+                      >
+                        {waiter.is_active ? "Active" : "Inactive"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-on-surface-variant text-sm">
+                  No waiters yet. Add your first waiter!
                 </p>
               )}
             </div>
@@ -800,58 +1038,202 @@ const OwnerDashboard: React.FC = () => {
           </section>
         )}
 
-        {activeTab === "categories" && (
-          <section className="px-8 mt-8 max-w-screen-2xl mx-auto">
-            <div className="mb-8">
-              <h2 className="font-display-lg text-2xl text-on-surface tracking-tight">
-                Menu Categories
-              </h2>
-              <p className="font-body-lg text-base text-on-surface-variant mt-2">
-                Manage your menu categories
-              </p>
+        {/* Modals */}
+        {showAddTableModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-on-surface">
+                  {editingTable ? "Edit Table" : "Add New Table"}
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowAddTableModal(false);
+                    resetTableForm();
+                  }}
+                >
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-on-surface mb-1">
+                    Table Number
+                  </label>
+                  <input
+                    type="text"
+                    value={tableForm.table_number}
+                    onChange={(e) =>
+                      setTableForm({
+                        ...tableForm,
+                        table_number: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="1"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-on-surface mb-1">
+                    Capacity
+                  </label>
+                  <input
+                    type="number"
+                    value={tableForm.capacity}
+                    onChange={(e) =>
+                      setTableForm({
+                        ...tableForm,
+                        capacity: parseInt(e.target.value) || 2,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    min="1"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-on-surface mb-1">
+                    Location Description
+                  </label>
+                  <input
+                    type="text"
+                    value={tableForm.location_description}
+                    onChange={(e) =>
+                      setTableForm({
+                        ...tableForm,
+                        location_description: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="Near window"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="table_active"
+                    checked={tableForm.is_active}
+                    onChange={(e) =>
+                      setTableForm({
+                        ...tableForm,
+                        is_active: e.target.checked,
+                      })
+                    }
+                    className="rounded"
+                  />
+                  <label
+                    htmlFor="table_active"
+                    className="text-sm text-on-surface"
+                  >
+                    Active
+                  </label>
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowAddTableModal(false);
+                    resetTableForm();
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddOrUpdateTable}
+                  className="flex-1 px-4 py-2 bg-primary-container text-on-primary rounded-lg hover:opacity-90"
+                >
+                  {editingTable ? "Update" : "Add"}
+                </button>
+              </div>
             </div>
-            <div className="bg-white rounded-xl p-6 custom-shadow">
-              <p className="text-on-surface-variant text-sm">
-                Menu categories interface will go here
-              </p>
-            </div>
-          </section>
+          </div>
         )}
 
-        {activeTab === "availability" && (
-          <section className="px-8 mt-8 max-w-screen-2xl mx-auto">
-            <div className="mb-8">
-              <h2 className="font-display-lg text-2xl text-on-surface tracking-tight">
-                Availability Management
-              </h2>
-              <p className="font-body-lg text-base text-on-surface-variant mt-2">
-                Manage your menu item availability
-              </p>
+        {showAddWaiterModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-on-surface">
+                  {editingWaiter ? "Edit Waiter" : "Add New Waiter"}
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowAddWaiterModal(false);
+                    resetWaiterForm();
+                  }}
+                >
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-on-surface mb-1">
+                    Name
+                  </label>
+                  <input
+                    type="text"
+                    value={waiterForm.name}
+                    onChange={(e) =>
+                      setWaiterForm({ ...waiterForm, name: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="John Doe"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-on-surface mb-1">
+                    Phone (optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={waiterForm.phone}
+                    onChange={(e) =>
+                      setWaiterForm({ ...waiterForm, phone: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="+123456789"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="waiter_active"
+                    checked={waiterForm.is_active}
+                    onChange={(e) =>
+                      setWaiterForm({
+                        ...waiterForm,
+                        is_active: e.target.checked,
+                      })
+                    }
+                    className="rounded"
+                  />
+                  <label
+                    htmlFor="waiter_active"
+                    className="text-sm text-on-surface"
+                  >
+                    Active
+                  </label>
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowAddWaiterModal(false);
+                    resetWaiterForm();
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddOrUpdateWaiter}
+                  className="flex-1 px-4 py-2 bg-primary-container text-on-primary rounded-lg hover:opacity-90"
+                >
+                  {editingWaiter ? "Update" : "Add"}
+                </button>
+              </div>
             </div>
-            <div className="bg-white rounded-xl p-6 custom-shadow">
-              <p className="text-on-surface-variant text-sm">
-                Availability management interface will go here
-              </p>
-            </div>
-          </section>
-        )}
-
-        {activeTab === "promotions" && (
-          <section className="px-8 mt-8 max-w-screen-2xl mx-auto">
-            <div className="mb-8">
-              <h2 className="font-display-lg text-2xl text-on-surface tracking-tight">
-                Promotions
-              </h2>
-              <p className="font-body-lg text-base text-on-surface-variant mt-2">
-                Manage your restaurant promotions
-              </p>
-            </div>
-            <div className="bg-white rounded-xl p-6 custom-shadow">
-              <p className="text-on-surface-variant text-sm">
-                Promotions interface will go here
-              </p>
-            </div>
-          </section>
+          </div>
         )}
       </div>
     </div>

@@ -9,10 +9,11 @@ interface ApiUser {
 
 interface ApiWaiter {
   id: number;
-  name: string;
+  first_name: string;
+  last_name: string;
   phone?: string;
+  email?: string;
   restaurant_id: number;
-  is_active: boolean;
   created_at: string;
   updated_at: string;
 }
