@@ -460,6 +460,10 @@ const OwnerDashboard: React.FC = () => {
       last_name: waiter.last_name,
       phone: waiter.phone || "",
       email: waiter.email || "",
+      staff_role: waiter.staff_role || "waiter",
+      task: waiter.task || "",
+      photo_url: waiter.photo_url || "",
+      status: waiter.status || "active",
     });
     setShowAddWaiterModal(true);
   };
@@ -1305,27 +1309,112 @@ const OwnerDashboard: React.FC = () => {
         )}
 
         {activeTab === "waiters" && (
-          <section className="px-8 mt-8 max-w-screen-2xl mx-auto">
-            <div className="mb-8 flex justify-between items-center">
+          <section className="px-8 mt-8 max-w-screen-2xl mx-auto pb-16">
+            <div className="mb-6 flex justify-between items-center">
               <div>
-                <h2 className="font-display-lg text-2xl text-on-surface tracking-tight">
-                  Waiter Management
-                </h2>
-                <p className="font-body-lg text-base text-on-surface-variant mt-2">
-                  Manage your restaurant staff
-                </p>
+                <h2 className="font-display-lg text-2xl text-on-surface tracking-tight">Staff Management</h2>
+                <p className="font-body-lg text-base text-on-surface-variant mt-1">Manage all staff — waiters, managers, security &amp; more</p>
               </div>
               <button
-                onClick={() => {
-                  resetWaiterForm();
-                  setShowAddWaiterModal(true);
-                }}
+                onClick={() => { resetWaiterForm(); setShowAddWaiterModal(true); }}
                 className="bg-primary-container text-on-primary hover:opacity-90 active:scale-95 px-6 py-3 rounded-xl font-headline-sm text-sm transition-all flex items-center shadow-md"
               >
-                <span className="material-symbols-outlined mr-2">add</span>
-                Add Waiter
+                <span className="material-symbols-outlined mr-2">person_add</span>
+                Add Staff Member
               </button>
             </div>
+
+            {/* Role filter tabs */}
+            {(() => {
+              const roles = ["all", "waiter", "manager", "security", "chef", "cashier"];
+              const [activeRole, setActiveRole] = React.useState("all");
+              const filtered = activeRole === "all" ? waiters : waiters.filter(w => w.staff_role === activeRole);
+              const roleColors: Record<string, string> = {
+                waiter: "bg-blue-100 text-blue-700",
+                manager: "bg-purple-100 text-purple-700",
+                security: "bg-red-100 text-red-700",
+                chef: "bg-orange-100 text-orange-700",
+                cashier: "bg-green-100 text-green-700",
+              };
+              const statusColors: Record<string, string> = {
+                active: "bg-green-100 text-green-700",
+                inactive: "bg-gray-100 text-gray-500",
+                on_leave: "bg-yellow-100 text-yellow-700",
+              };
+              return (
+                <>
+                  <div className="flex gap-2 mb-6 flex-wrap">
+                    {roles.map(r => (
+                      <button
+                        key={r}
+                        onClick={() => setActiveRole(r)}
+                        className={`px-4 py-1.5 rounded-full text-xs font-semibold capitalize transition-all ${activeRole === r ? "bg-primary-container text-on-primary" : "bg-white border border-gray-200 text-gray-500 hover:border-primary"}`}
+                      >
+                        {r === "all" ? `All (${waiters.length})` : `${r} (${waiters.filter(w => w.staff_role === r).length})`}
+                      </button>
+                    ))}
+                  </div>
+
+                  {filtered.length === 0 ? (
+                    <div className="bg-white rounded-xl p-12 text-center text-on-surface-variant custom-shadow">
+                      <span className="material-symbols-outlined text-4xl mb-3 block text-gray-300">group</span>
+                      No staff in this category yet.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {filtered.map((waiter) => (
+                        <div key={waiter.id} className="bg-white rounded-xl border border-gray-100 p-5 custom-shadow hover:shadow-md transition-shadow">
+                          {/* Photo */}
+                          <div className="flex items-center gap-3 mb-4">
+                            {waiter.photo_url ? (
+                              <img src={`http://localhost:5000${waiter.photo_url}`} alt={waiter.first_name} className="w-12 h-12 rounded-full object-cover border-2 border-gray-100" />
+                            ) : (
+                              <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-xl font-bold border-2 border-gray-100">
+                                {waiter.first_name[0]}{waiter.last_name[0]}
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <p className="font-semibold text-sm truncate">{waiter.first_name} {waiter.last_name}</p>
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${roleColors[waiter.staff_role || "waiter"] || "bg-gray-100 text-gray-600"}`}>
+                                {waiter.staff_role || "waiter"}
+                              </span>
+                            </div>
+                          </div>
+
+                          {waiter.task && (
+                            <div className="bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mb-3">
+                              <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wide mb-0.5">Current Task</p>
+                              <p className="text-xs text-amber-800">{waiter.task}</p>
+                            </div>
+                          )}
+
+                          <div className="space-y-1 text-xs text-gray-500 mb-4">
+                            {waiter.phone && <p>📞 {waiter.phone}</p>}
+                            {waiter.email && <p>✉️ {waiter.email}</p>}
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${statusColors[waiter.status || "active"]}`}>
+                              {(waiter.status || "active").replace("_", " ")}
+                            </span>
+                            <div className="flex gap-1">
+                              <button onClick={() => handleEditWaiter(waiter)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                                <span className="material-symbols-outlined text-base">edit</span>
+                              </button>
+                              <button onClick={() => handleDeleteWaiter(waiter.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                                <span className="material-symbols-outlined text-base">delete</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </section>
+        )}
             <div className="bg-white rounded-xl p-6 custom-shadow">
               {waiters.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
