@@ -50,6 +50,9 @@ import {
   getDailySales,
   getTopMenuItems,
   getOrdersByStatus,
+  getAdminStats,
+  getAllOrders,
+  updateRestaurantStatus,
 } from "../models/restaurantModel.js";
 
 export const createRestaurantController = async (req, res) => {
@@ -819,5 +822,42 @@ export const getOrdersByStatusController = async (req, res) => {
     res
       .status(500)
       .json({ success: false, message: "Failed to get orders by status" });
+  }
+};
+
+// ------------------------------
+// ADMIN
+// ------------------------------
+
+export const getAdminStatsController = async (req, res) => {
+  try {
+    const stats = await getAdminStats();
+    res.json({ success: true, stats });
+  } catch (error) {
+    console.error("Get admin stats error:", error);
+    res.status(500).json({ success: false, message: "Failed to get stats" });
+  }
+};
+
+export const getAllOrdersController = async (req, res) => {
+  try {
+    const orders = await getAllOrders();
+    res.json({ success: true, orders });
+  } catch (error) {
+    console.error("Get all orders error:", error);
+    res.status(500).json({ success: false, message: "Failed to get orders" });
+  }
+};
+
+export const updateRestaurantStatusController = async (req, res) => {
+  try {
+    const restaurant = await updateRestaurantStatus(req.params.id, req.body.is_active);
+    if (!restaurant) {
+      return res.status(404).json({ success: false, message: "Restaurant not found" });
+    }
+    res.json({ success: true, restaurant });
+  } catch (error) {
+    console.error("Update restaurant status error:", error);
+    res.status(500).json({ success: false, message: "Failed to update restaurant" });
   }
 };

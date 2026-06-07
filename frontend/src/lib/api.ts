@@ -250,6 +250,19 @@ export const authApi = {
     }),
 };
 
+// Admin API
+export const adminApi = {
+  getStats: () =>
+    apiClient<{ success: boolean; stats: { total_users: number; total_restaurants: number; total_orders: number; total_revenue: number } }>('/restaurants/admin/stats', { method: 'GET' }),
+  getAllOrders: () =>
+    apiClient<{ success: boolean; orders: (ApiOrder & { restaurant_name?: string; user_name?: string })[] }>('/restaurants/admin/orders', { method: 'GET' }),
+  toggleRestaurantStatus: (id: number, is_active: boolean) =>
+    apiClient<{ success: boolean; restaurant: ApiRestaurant & { is_active: boolean } }>(`/restaurants/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_active }),
+    }),
+};
+
 // Restaurants API
 export const restaurantApi = {
   getAll: () => apiClient<{ success: boolean; restaurants: ApiRestaurant[] }>('/restaurants', { method: 'GET' }),

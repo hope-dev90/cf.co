@@ -49,6 +49,9 @@ import {
   getDailySalesController,
   getTopMenuItemsController,
   getOrdersByStatusController,
+  getAdminStatsController,
+  getAllOrdersController,
+  updateRestaurantStatusController,
 } from "../controller/restaurantController.js";
 import {
   authMiddleware,
@@ -240,5 +243,12 @@ restaurantRouter.get(
   authMiddleware,
   getOrdersByStatusController,
 );
+
+// ------------------------------
+// Admin
+// ------------------------------
+restaurantRouter.get("/admin/stats", authMiddleware, adminOnly, getAdminStatsController);
+restaurantRouter.get("/admin/orders", authMiddleware, adminOnly, getAllOrdersController);
+restaurantRouter.patch("/:id/status", authMiddleware, adminOnly, updateRestaurantStatusController);
 
 export default restaurantRouter;
