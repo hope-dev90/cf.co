@@ -186,6 +186,7 @@ const OwnerDashboard: React.FC = () => {
 
   const [selectedOrder, setSelectedOrder] = useState<ApiOrder | null>(null);
   const [loadingOrderDetail, setLoadingOrderDetail] = useState(false);
+  const [activeStaffRole, setActiveStaffRole] = useState("all");
 
   const handleViewOrder = async (id: string) => {
     setLoadingOrderDetail(true);
@@ -1327,8 +1328,7 @@ const OwnerDashboard: React.FC = () => {
             {/* Role filter tabs */}
             {(() => {
               const roles = ["all", "waiter", "manager", "security", "chef", "cashier"];
-              const [activeRole, setActiveRole] = React.useState("all");
-              const filtered = activeRole === "all" ? waiters : waiters.filter(w => w.staff_role === activeRole);
+              const filtered = activeStaffRole === "all" ? waiters : waiters.filter(w => w.staff_role === activeStaffRole);
               const roleColors: Record<string, string> = {
                 waiter: "bg-blue-100 text-blue-700",
                 manager: "bg-purple-100 text-purple-700",
@@ -1347,8 +1347,8 @@ const OwnerDashboard: React.FC = () => {
                     {roles.map(r => (
                       <button
                         key={r}
-                        onClick={() => setActiveRole(r)}
-                        className={`px-4 py-1.5 rounded-full text-xs font-semibold capitalize transition-all ${activeRole === r ? "bg-primary-container text-on-primary" : "bg-white border border-gray-200 text-gray-500 hover:border-primary"}`}
+                        onClick={() => setActiveStaffRole(r)}
+                        className={`px-4 py-1.5 rounded-full text-xs font-semibold capitalize transition-all ${activeStaffRole === r ? "bg-primary-container text-on-primary" : "bg-white border border-gray-200 text-gray-500 hover:border-primary"}`}
                       >
                         {r === "all" ? `All (${waiters.length})` : `${r} (${waiters.filter(w => w.staff_role === r).length})`}
                       </button>
@@ -1364,7 +1364,6 @@ const OwnerDashboard: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                       {filtered.map((waiter) => (
                         <div key={waiter.id} className="bg-white rounded-xl border border-gray-100 p-5 custom-shadow hover:shadow-md transition-shadow">
-                          {/* Photo */}
                           <div className="flex items-center gap-3 mb-4">
                             {waiter.photo_url ? (
                               <img src={`http://localhost:5000${waiter.photo_url}`} alt={waiter.first_name} className="w-12 h-12 rounded-full object-cover border-2 border-gray-100" />
@@ -1641,100 +1640,116 @@ const OwnerDashboard: React.FC = () => {
         )}
 
         {showAddWaiterModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
-              <div className="flex justify-between items-center mb-6">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center p-6 border-b">
                 <h3 className="text-xl font-bold text-on-surface">
-                  {editingWaiter ? "Edit Waiter" : "Add New Waiter"}
+                  {editingWaiter ? "Edit Staff Member" : "Add Staff Member"}
                 </h3>
-                <button
-                  onClick={() => {
-                    setShowAddWaiterModal(false);
-                    resetWaiterForm();
-                  }}
-                >
+                <button onClick={() => { setShowAddWaiterModal(false); resetWaiterForm(); }}>
                   <span className="material-symbols-outlined">close</span>
                 </button>
               </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-on-surface mb-1">
-                    First Name
+
+              <div className="p-6 space-y-4">
+                {/* Photo upload */}
+                <div className="flex flex-col items-center gap-3">
+                  {waiterForm.photo_url ? (
+                    <img src={`http://localhost:5000${waiterForm.photo_url}`} alt="Staff" className="w-20 h-20 rounded-full object-cover border-4 border-gray-100" />
+                  ) : (
+                    <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center text-gray-400">
+                      <span className="material-symbols-outlined text-3xl">person</span>
+                    </div>
+                  )}
+                  <label className="cursor-pointer text-xs font-semibold text-primary-container hover:opacity-80 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm">upload</span>
+                    Upload Photo
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const fd = new FormData();
+                        fd.append("photo", file);
+                        const res = await fetch("http://localhost:5000/upload/staff-photo", {
+                          method: "POST",
+                          headers: { Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+                          body: fd,
+                        });
+                        const data = await res.json();
+                        if (data.url) setWaiterForm(p => ({ ...p, photo_url: data.url }));
+                      }}
+                    />
                   </label>
-                  <input
-                    type="text"
-                    value={waiterForm.first_name}
-                    onChange={(e) =>
-                      setWaiterForm({
-                        ...waiterForm,
-                        first_name: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="John"
-                  />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-on-surface mb-1">
-                    Last Name
-                  </label>
-                  <input
-                    type="text"
-                    value={waiterForm.last_name}
-                    onChange={(e) =>
-                      setWaiterForm({
-                        ...waiterForm,
-                        last_name: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="Doe"
-                  />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">First Name</label>
+                    <input type="text" value={waiterForm.first_name} onChange={(e) => setWaiterForm({ ...waiterForm, first_name: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm" placeholder="John" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Last Name</label>
+                    <input type="text" value={waiterForm.last_name} onChange={(e) => setWaiterForm({ ...waiterForm, last_name: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm" placeholder="Doe" />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-on-surface mb-1">
-                    Phone (optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={waiterForm.phone}
-                    onChange={(e) =>
-                      setWaiterForm({ ...waiterForm, phone: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="+123456789"
-                  />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Role</label>
+                    <select value={waiterForm.staff_role} onChange={(e) => setWaiterForm({ ...waiterForm, staff_role: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm bg-white">
+                      <option value="waiter">Waiter</option>
+                      <option value="manager">Manager</option>
+                      <option value="security">Security</option>
+                      <option value="chef">Chef</option>
+                      <option value="cashier">Cashier</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Status</label>
+                    <select value={waiterForm.status} onChange={(e) => setWaiterForm({ ...waiterForm, status: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm bg-white">
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                      <option value="on_leave">On Leave</option>
+                    </select>
+                  </div>
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-on-surface mb-1">
-                    Email (optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={waiterForm.email}
-                    onChange={(e) =>
-                      setWaiterForm({ ...waiterForm, email: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="john@example.com"
-                  />
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Assign Task</label>
+                  <input type="text" value={waiterForm.task} onChange={(e) => setWaiterForm({ ...waiterForm, task: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                    placeholder="e.g. Cover tables 1-5 tonight" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Phone</label>
+                    <input type="text" value={waiterForm.phone} onChange={(e) => setWaiterForm({ ...waiterForm, phone: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm" placeholder="+123456789" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Email</label>
+                    <input type="email" value={waiterForm.email} onChange={(e) => setWaiterForm({ ...waiterForm, email: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm" placeholder="john@example.com" />
+                  </div>
                 </div>
               </div>
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={() => {
-                    setShowAddWaiterModal(false);
-                    resetWaiterForm();
-                  }}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
+
+              <div className="flex gap-3 px-6 pb-6">
+                <button onClick={() => { setShowAddWaiterModal(false); resetWaiterForm(); }}
+                  className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">
                   Cancel
                 </button>
-                <button
-                  onClick={handleAddOrUpdateWaiter}
-                  className="flex-1 px-4 py-2 bg-primary-container text-on-primary rounded-lg hover:opacity-90"
-                >
-                  {editingWaiter ? "Update" : "Add"}
+                <button onClick={handleAddOrUpdateWaiter}
+                  className="flex-1 px-4 py-2.5 bg-primary-container text-on-primary rounded-lg hover:opacity-90 text-sm font-semibold">
+                  {editingWaiter ? "Update" : "Add Staff Member"}
                 </button>
               </div>
             </div>
