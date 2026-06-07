@@ -112,6 +112,7 @@ interface Order {
   notes: string;
   createdAt: string;
   estimatedDeliveryTime: string;
+  assignedWaiterId?: string;
 }
 
 interface OrderItem {
@@ -150,6 +151,10 @@ interface Waiter {
   lastName: string;
   email: string;
   phone: string;
+  status: "available" | "on-delivery";
+  assignedOrderId?: string;
+  assignmentTime?: number;
+  deliveryDuration: number; // in minutes
 }
 
 interface RestaurantTable {
@@ -236,6 +241,7 @@ const OwnerDashboard: React.FC = () => {
     lastName: "",
     email: "",
     phone: "",
+    deliveryDuration: 30, // default 30 minutes
   });
   const [newTableForm, setNewTableForm] = useState({
     tableNumber: "",
@@ -244,6 +250,85 @@ const OwnerDashboard: React.FC = () => {
     positionX: "12",
     positionY: "12",
   });
+
+  // useEffect to auto-update waiters status
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      setWaiters((prevWaiters) =>
+        prevWaiters.map((waiter) => {
+          if (
+            waiter.status === "on-delivery" &&
+            waiter.assignmentTime &&
+            waiter.deliveryDuration
+          ) {
+            const elapsedMinutes = (now - waiter.assignmentTime) / (1000 * 60);
+            if (elapsedMinutes >= waiter.deliveryDuration) {
+              return {
+                ...waiter,
+                status: "available",
+                assignedOrderId: undefined,
+                assignmentTime: undefined,
+              };
+            }
+          }
+          return waiter;
+        }),
+      );
+    }, 10000); // Check every 10 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Handlers for waiter assignment
+  const handleAssignWaiter = (orderId: string, waiterId: string) => {
+    const waiter = waiters.find((w) => w.id === waiterId);
+    if (!waiter || waiter.status !== "available") return;
+
+    // Update waiter
+    setWaiters((prev) =>
+      prev.map((w) =>
+        w.id === waiterId
+          ? {
+              ...w,
+              status: "on-delivery",
+              assignedOrderId: orderId,
+              assignmentTime: Date.now(),
+            }
+          : w,
+      ),
+    );
+
+    // Update order
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === orderId ? { ...o, assignedWaiterId: waiterId } : o,
+      ),
+    );
+  };
+
+  const handleUnassignWaiter = (orderId: string, waiterId: string) => {
+    // Update waiter
+    setWaiters((prev) =>
+      prev.map((w) =>
+        w.id === waiterId
+          ? {
+              ...w,
+              status: "available",
+              assignedOrderId: undefined,
+              assignmentTime: undefined,
+            }
+          : w,
+      ),
+    );
+
+    // Update order
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === orderId ? { ...o, assignedWaiterId: undefined } : o,
+      ),
+    );
+  };
 
   // Analytics state
   const [analyticsDateRange, setAnalyticsDateRange] = useState<
@@ -1330,6 +1415,71 @@ const OwnerDashboard: React.FC = () => {
                             </div>
                           </div>
 
+                          {/* Waiter Assignment */}
+                          <div className="space-y-2">
+                            <h4 className="font-bold text-[#1a1a2e]">
+                              Waiter Assignment
+                            </h4>
+                            {order.assignedWaiterId ? (
+                              <div className="flex items-center justify-between bg-white p-3 rounded">
+                                <div>
+                                  <p className="text-sm text-gray-700">
+                                    Assigned Waiter:{" "}
+                                    {
+                                      waiters.find(
+                                        (w) => w.id === order.assignedWaiterId,
+                                      )?.firstName
+                                    }{" "}
+                                    {
+                                      waiters.find(
+                                        (w) => w.id === order.assignedWaiterId,
+                                      )?.lastName
+                                    }
+                                  </p>
+                                </div>
+                                <button
+                                  onClick={() =>
+                                    handleUnassignWaiter(
+                                      order.id,
+                                      order.assignedWaiterId!,
+                                    )
+                                  }
+                                  className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded text-sm font-semibold hover:bg-yellow-200 transition-all"
+                                >
+                                  Unassign
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="space-y-2">
+                                <select
+                                  className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-[#e8722a] bg-white"
+                                  onChange={(e) =>
+                                    e.target.value &&
+                                    handleAssignWaiter(order.id, e.target.value)
+                                  }
+                                  defaultValue=""
+                                >
+                                  <option value="" disabled>
+                                    Select a waiter
+                                  </option>
+                                  {waiters
+                                    .filter((w) => w.status === "available")
+                                    .map((waiter) => (
+                                      <option key={waiter.id} value={waiter.id}>
+                                        {waiter.firstName} {waiter.lastName}
+                                      </option>
+                                    ))}
+                                </select>
+                                {waiters.filter((w) => w.status === "available")
+                                  .length === 0 && (
+                                  <p className="text-xs text-gray-500">
+                                    No available waiters right now
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
                           {/* Action Buttons */}
                           <div className="flex gap-2 pt-2 border-t border-gray-200">
                             {order.status === "pending" && (
@@ -1806,6 +1956,18 @@ const OwnerDashboard: React.FC = () => {
                       }
                       className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#e8722a]"
                     />
+                    <input
+                      type="number"
+                      placeholder="Delivery Duration (minutes)"
+                      value={newWaiterForm.deliveryDuration}
+                      onChange={(e) =>
+                        setNewWaiterForm({
+                          ...newWaiterForm,
+                          deliveryDuration: parseInt(e.target.value) || 30,
+                        })
+                      }
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#e8722a]"
+                    />
                   </div>
                   <div className="flex gap-2 pt-2">
                     <button
@@ -1822,6 +1984,7 @@ const OwnerDashboard: React.FC = () => {
                             {
                               id: String(Date.now()),
                               ...newWaiterForm,
+                              status: "available",
                             },
                           ]);
                           setNewWaiterForm({
@@ -1829,6 +1992,7 @@ const OwnerDashboard: React.FC = () => {
                             lastName: "",
                             email: "",
                             phone: "",
+                            deliveryDuration: 30,
                           });
                           setShowAddWaiter(false);
                         }
@@ -1863,17 +2027,56 @@ const OwnerDashboard: React.FC = () => {
                             </p>
                           </div>
                         </div>
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            waiter.status === "available"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-orange-100 text-orange-700"
+                          }`}
+                        >
+                          {waiter.status === "available"
+                            ? "Available"
+                            : "On Delivery"}
+                        </span>
                       </div>
                       <div className="space-y-2 text-sm text-gray-600 mb-4">
                         <div className="flex items-center gap-2">
                           <Phone className="w-4 h-4" />
                           <span>{waiter.phone || "Not provided"}</span>
                         </div>
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4" />
+                          <span>
+                            Delivery Duration: {waiter.deliveryDuration} min
+                          </span>
+                        </div>
+                        {waiter.assignedOrderId && (
+                          <div className="flex items-center gap-2">
+                            <ShoppingBag className="w-4 h-4" />
+                            <span>
+                              Assigned Order: {waiter.assignedOrderId}
+                            </span>
+                          </div>
+                        )}
                       </div>
                       <div className="flex gap-2 pt-4 border-t border-gray-200">
                         <button className="flex-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg font-semibold hover:bg-blue-200 transition-all">
                           <Edit2 className="w-4 h-4" />
                         </button>
+                        {waiter.status === "on-delivery" &&
+                          waiter.assignedOrderId && (
+                            <button
+                              onClick={() =>
+                                handleUnassignWaiter(
+                                  waiter.assignedOrderId!,
+                                  waiter.id,
+                                )
+                              }
+                              className="flex-1 px-3 py-2 bg-yellow-100 text-yellow-700 rounded-lg font-semibold hover:bg-yellow-200 transition-all"
+                            >
+                              <Clock className="w-4 h-4" />
+                            </button>
+                          )}
                         <button
                           onClick={() =>
                             setWaiters(
