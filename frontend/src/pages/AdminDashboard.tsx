@@ -1,87 +1,87 @@
 import React, { useState, useEffect, useCallback } from "react";
-import {
-  LayoutDashboard,
-  Users,
-  Store,
-  ShoppingBag,
-  Settings,
-  LogOut,
-  Menu,
-  X,
-  Shield,
-  Search,
-  Filter,
-  Clock,
-  CheckCircle,
-  Star,
-  Home,
-  Loader2,
-  AlertCircle,
-} from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { useNavigate, Link } from "react-router-dom";
 import { authApi, restaurantApi, adminApi } from "../lib/api";
 import type { ApiUser, ApiRestaurant, ApiOrder } from "../lib/api";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface AdminOrder extends ApiOrder {
   restaurant_name?: string;
   user_name?: string;
 }
-
 interface AdminRestaurant extends ApiRestaurant {
   is_active?: boolean;
 }
+interface Stats {
+  total_users: number;
+  total_restaurants: number;
+  total_orders: number;
+  total_revenue: number;
+}
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Shared UI Atoms ─────────────────────────────────────────────────────────
 
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
-  const styles: Record<string, { bg: string; text: string }> = {
-    pending:   { bg: "bg-amber-100",  text: "text-amber-800"  },
-    confirmed: { bg: "bg-blue-100",   text: "text-blue-800"   },
-    preparing: { bg: "bg-orange-100", text: "text-orange-800" },
-    ready:     { bg: "bg-green-100",  text: "text-green-800"  },
-    served:    { bg: "bg-teal-100",   text: "text-teal-800"   },
-    delivered: { bg: "bg-slate-100",  text: "text-slate-800"  },
-    completed: { bg: "bg-slate-100",  text: "text-slate-800"  },
-    cancelled: { bg: "bg-red-100",    text: "text-red-800"    },
-    active:    { bg: "bg-green-100",  text: "text-green-800"  },
-    inactive:  { bg: "bg-gray-100",   text: "text-gray-800"   },
+  const map: Record<string, string> = {
+    pending:   "bg-amber-100 text-amber-800",
+    preparing: "bg-orange-100 text-orange-800",
+    ready:     "bg-blue-100 text-blue-800",
+    served:    "bg-teal-100 text-teal-800",
+    completed: "bg-green-100 text-green-800",
+    delivered: "bg-green-100 text-green-800",
+    cancelled: "bg-red-100 text-red-800",
+    active:    "bg-green-100 text-green-800",
+    inactive:  "bg-surface-variant text-on-surface-variant",
+    client:    "bg-surface-container text-on-surface",
+    restaurateur: "bg-primary-fixed text-on-primary-container",
+    admin:     "bg-tertiary-container text-on-tertiary-container",
   };
-  const style = styles[status] || styles.pending;
   return (
-    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${style.bg} ${style.text}`}>
-      {status.charAt(0).toUpperCase() + status.slice(1)}
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-label-bold font-semibold capitalize ${map[status] || "bg-surface-variant text-on-surface-variant"}`}>
+      {status}
     </span>
   );
 };
 
-const ErrorMessage: React.FC<{ message: string }> = ({ message }) => (
-  <div className="flex items-center gap-2 text-red-600 bg-red-50 border border-red-200 rounded-lg p-4">
-    <AlertCircle size={16} />
-    <span className="text-sm">{message}</span>
-  </div>
-);
-
 const Spinner: React.FC = () => (
-  <div className="flex items-center justify-center py-12">
-    <Loader2 className="animate-spin text-[#e8722a]" size={32} />
+  <div className="flex items-center justify-center py-16">
+    <span className="material-symbols-outlined text-primary-container animate-spin text-4xl">progress_activity</span>
   </div>
 );
 
-// ─── Overview Tab ─────────────────────────────────────────────────────────────
+const EmptyState: React.FC<{ icon: string; label: string }> = ({ icon, label }) => (
+  <div className="flex flex-col items-center justify-center py-16 text-on-surface-variant gap-3">
+    <span className="material-symbols-outlined text-5xl opacity-30">{icon}</span>
+    <p className="text-body-sm">{label}</p>
+  </div>
+);
 
-const OverviewTab: React.FC = () => {
-  const [stats, setStats] = useState<{
-    total_users: number;
-    total_restaurants: number;
-    total_orders: number;
-    total_revenue: number;
-  } | null>(null);
-  const [recentOrders, setRecentOrders] = useState<AdminOrder[]>([]);
-  const [topRestaurants, setTopRestaurants] = useState<AdminRestaurant[]>([]);
-  const [loading, setLoading] = useState(true);
+const ErrorBanner: React.FC<{ message: string }> = ({ message }) => (
+  <div className="flex items-center gap-3 bg-error-container text-on-error-container rounded-xl px-4 py-3 text-body-sm">
+    <span className="material-symbols-outlined text-base">error</span>
+    {message}
+  </div>
+);
+
+// ─── Stat Card ────────────────────────────────────────────────────────────────
+
+const StatCard: React.FC<{
+  icon: string;
+  label: string;
+  value: string | number;
+  sub?: string;
+  accent?: string;
+}> = ({ icon, label, value, sub, accent = "text-primary-container" }) => (
+  <div className="card p-6 flex items-start gap-4">
+    <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-primary-fixed flex-shrink-0`}>
+      <span className={`material-symbols-outlined text-2xl ${accent}`}>{icon}</span>
+    </div>
+    <div>
+      <p className="text-body-sm text-on-surface-variant mb-1">{label}</p>
+      <p className="text-headline-md font-bold text-on-surface">{value}</p>
+      {sub && <p className="text-label-bold text-on-surface-variant mt-1">{sub}</p>}
+    </div>oading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
