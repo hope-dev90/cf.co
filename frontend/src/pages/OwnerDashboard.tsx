@@ -248,12 +248,12 @@ const OwnerDashboard: React.FC = () => {
   const [analyticsDateRange, setAnalyticsDateRange] = useState<
     "today" | "week" | "month" | "all"
   >("today");
-  const [totalRevenue, setTotalRevenue] = useState(0);
-  const [previousPeriodRevenue, setPreviousPeriodRevenue] = useState(0);
-  const [totalOrdersCount, setTotalOrdersCount] = useState(0);
-  const [averageOrderValue, setAverageOrderValue] = useState(0);
-  const [topSellingItems, setTopSellingItems] = useState<any[]>([]);
-  const [ordersByStatus, setOrdersByStatus] = useState({
+  const [totalRevenue] = useState(0);
+  const [previousPeriodRevenue] = useState(0);
+  const [totalOrdersCount] = useState(0);
+  const [averageOrderValue] = useState(0);
+  const [topSellingItems] = useState<any[]>([]);
+  const [ordersByStatus] = useState({
     pending: 0,
     confirmed: 0,
     preparing: 0,
@@ -261,13 +261,13 @@ const OwnerDashboard: React.FC = () => {
     delivered: 0,
     cancelled: 0,
   });
-  const [peakHours, setPeakHours] = useState({
+  const [peakHours] = useState({
     morning: 0,
     afternoon: 0,
     evening: 0,
     night: 0,
   });
-  const [customerInsights, setCustomerInsights] = useState({
+  const [customerInsights] = useState({
     newCustomers: 0,
     returningCustomers: 0,
     averageOrderValueByType: { new: 0, returning: 0 },
@@ -587,25 +587,6 @@ const OwnerDashboard: React.FC = () => {
         return "bg-red-100 text-red-800";
       default:
         return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  const getStatusBgColor = (status: Order["status"]) => {
-    switch (status) {
-      case "pending":
-        return "bg-yellow-500";
-      case "confirmed":
-        return "bg-blue-500";
-      case "preparing":
-        return "bg-purple-500";
-      case "ready":
-        return "bg-green-500";
-      case "delivered":
-        return "bg-emerald-500";
-      case "cancelled":
-        return "bg-red-500";
-      default:
-        return "bg-gray-500";
     }
   };
 

@@ -55,7 +55,14 @@ export default function LandingPage() {
       try {
         const data = await restaurantApi.getAll();
         if (data.success && data.restaurants) {
-          setRestaurants(data.restaurants);
+          const mappedRestaurants: RestaurantCard[] = data.restaurants.map(
+            (restaurant) => ({
+              id: restaurant.id,
+              name: restaurant.name,
+              cuisine_type: restaurant.cuisine_type || "",
+            }),
+          );
+          setRestaurants(mappedRestaurants);
         }
       } catch (err) {
         console.error("Error fetching restaurants:", err);

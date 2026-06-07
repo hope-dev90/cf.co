@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 import { orderApi, restaurantApi } from "../../lib/api";
 import {
-  DEMO_MENU,
   DEMO_TABLES,
   formatTime,
   generateTimeSlots,

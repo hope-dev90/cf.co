@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Search, ArrowLeft, Plus } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { restaurantApi } from "../lib/api";
+import type { ApiRestaurant } from "../types/booking";
 
 interface RestaurantCard {
   id: number;
@@ -32,7 +33,16 @@ export default function BrowseRestaurants() {
       try {
         const data = await restaurantApi.getAll();
         if (data.success && data.restaurants) {
-          setRestaurants(data.restaurants);
+          const mappedRestaurants: RestaurantCard[] = data.restaurants.map(
+            (restaurant) => ({
+              id: restaurant.id,
+              name: restaurant.name,
+              cuisine_type: restaurant.cuisine_type || "",
+              description: restaurant.description,
+              phone: restaurant.phone,
+            }),
+          );
+          setRestaurants(mappedRestaurants);
         }
       } catch (err) {
         console.error("Error fetching restaurants:", err);
@@ -44,9 +54,13 @@ export default function BrowseRestaurants() {
     fetchRestaurants();
   }, []);
 
-  const filteredRestaurants = restaurants.filter((restaurant) =>
-    restaurant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (restaurant.cuisine_type && restaurant.cuisine_type.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredRestaurants = restaurants.filter(
+    (restaurant) =>
+      restaurant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (restaurant.cuisine_type &&
+        restaurant.cuisine_type
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase())),
   );
 
   return (
@@ -62,8 +76,12 @@ export default function BrowseRestaurants() {
               <ArrowLeft size={24} className="text-[#1a1a2e]" />
             </button>
             <div className="flex-1">
-              <h1 className="text-2xl font-bold text-[#1a1a2e]">Browse Restaurants</h1>
-              <p className="text-sm text-[#4a4a68]">Discover amazing food near you</p>
+              <h1 className="text-2xl font-bold text-[#1a1a2e]">
+                Browse Restaurants
+              </h1>
+              <p className="text-sm text-[#4a4a68]">
+                Discover amazing food near you
+              </p>
             </div>
             {user && (
               <Link
@@ -78,7 +96,10 @@ export default function BrowseRestaurants() {
 
           {/* Search Bar */}
           <div className="mt-4 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <Search
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+              size={20}
+            />
             <input
               type="text"
               placeholder="Search restaurants by name or cuisine..."
@@ -137,7 +158,10 @@ export default function BrowseRestaurants() {
                 {/* Image Container */}
                 <div className="relative h-56 overflow-hidden bg-gray-100">
                   <img
-                    src={restaurant.image || defaultImages[index % defaultImages.length]}
+                    src={
+                      restaurant.image ||
+                      defaultImages[index % defaultImages.length]
+                    }
                     alt={restaurant.name}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
