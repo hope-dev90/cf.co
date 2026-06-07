@@ -35,7 +35,6 @@ const OwnerDashboard: React.FC = () => {
     | "orders"
     | "analytics"
     | "settings"
-    | "waiters"
     | "tables"
     | "categories"
     | "availability"
@@ -69,6 +68,7 @@ const OwnerDashboard: React.FC = () => {
         return "bg-blue-100 text-blue-700";
       case "served":
       case "delivered":
+      case "completed":
         return "bg-green-100 text-green-700";
       case "cancelled":
         return "bg-red-100 text-red-700";
@@ -143,13 +143,17 @@ const OwnerDashboard: React.FC = () => {
         ),
       );
 
-      const today = new Date().toDateString();
-      setPendingOrders(
-        orders.filter(
-          (o) =>
-            o.status === "pending" || (o.id === id && newStatus === "pending"),
-        ).length,
-      );
+      setPendingOrders(() => {
+        let count = 0;
+        orders.forEach((o) => {
+          if (o.id === id) {
+            if (newStatus === "pending") count++;
+          } else if (o.status === "pending") {
+            count++;
+          }
+        });
+        return count;
+      });
     } catch (err) {
       console.error("Error updating order status:", err);
     }
@@ -484,6 +488,7 @@ const OwnerDashboard: React.FC = () => {
                             <option value="ready">Ready</option>
                             <option value="served">Served</option>
                             <option value="delivered">Delivered</option>
+                            <option value="completed">Completed</option>
                             <option value="cancelled">Cancelled</option>
                           </select>
                         </td>
@@ -694,6 +699,7 @@ const OwnerDashboard: React.FC = () => {
                             <option value="ready">Ready</option>
                             <option value="served">Served</option>
                             <option value="delivered">Delivered</option>
+                            <option value="completed">Completed</option>
                             <option value="cancelled">Cancelled</option>
                           </select>
                         </td>
