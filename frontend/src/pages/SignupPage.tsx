@@ -84,7 +84,7 @@ const SignupPage: React.FC = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % SLIDESHOW_IMAGES.length);
-    }, 1500);
+    }, 3000);
 
     return () => clearInterval(interval);
   }, []);
@@ -192,13 +192,13 @@ const SignupPage: React.FC = () => {
     <div className="min-h-screen flex bg-[#fef8f3]">
       {/* RIGHT */}
       <div className="hidden lg:flex lg:w-1/2 items-center justify-center bg-[#1a1a2e] text-white items-center justify-center overflow-hidden p-8">
-        <div className="relative max-h-[80vh] w-auto">
+        <div className="relative h-[80vh] w-[80%]">
           {SLIDESHOW_IMAGES.map((image, index) => (
             <img
               key={index}
               src={image}
               alt={`Slide ${index + 1}`}
-              className={`absolute inset-0 max-h-[80vh] w-auto rounded-3xl object-cover shadow-2xl transition-opacity duration-1000 ${
+              className={`absolute inset-0 h-full w-full rounded-3xl object-cover shadow-2xl transition-opacity duration-1000 ${
                 index === currentSlide ? "opacity-100" : "opacity-0"
               }`}
             />
