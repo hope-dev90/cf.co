@@ -126,11 +126,13 @@ const OwnerDashboard: React.FC = () => {
     const fetchData = async () => {
       try {
         const restaurantData = await restaurantApi.getMy();
+        console.log("restaurantData:", restaurantData);
         if (
           restaurantData.restaurants &&
           restaurantData.restaurants.length > 0
         ) {
           const rest = restaurantData.restaurants[0];
+          console.log("rest.id:", rest.id);
           setRestaurant(rest);
 
           const [
@@ -150,6 +152,8 @@ const OwnerDashboard: React.FC = () => {
             restaurantApi.getTopMenuItems(rest.id, 5),
             restaurantApi.getOrdersByStatus(rest.id),
           ]);
+
+          console.log("menuData:", menuData);
 
           const formattedOrders: Order[] = (ordersData.orders || []).map(
             (order: ApiOrder) => ({
