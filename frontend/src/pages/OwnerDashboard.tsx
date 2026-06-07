@@ -1415,58 +1415,6 @@ const OwnerDashboard: React.FC = () => {
             })()}
           </section>
         )}
-            <div className="bg-white rounded-xl p-6 custom-shadow">
-              {waiters.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {waiters.map((waiter) => (
-                    <div
-                      key={waiter.id}
-                      className="border border-gray-200 rounded-lg p-4"
-                    >
-                      <div className="flex justify-between items-center">
-                        <h3 className="font-semibold">
-                          {waiter.first_name} {waiter.last_name}
-                        </h3>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleEditWaiter(waiter)}
-                            className="text-blue-600 hover:text-blue-800"
-                          >
-                            <span className="material-symbols-outlined text-lg">
-                              edit
-                            </span>
-                          </button>
-                          <button
-                            onClick={() => handleDeleteWaiter(waiter.id)}
-                            className="text-red-600 hover:text-red-800"
-                          >
-                            <span className="material-symbols-outlined text-lg">
-                              delete
-                            </span>
-                          </button>
-                        </div>
-                      </div>
-                      {waiter.phone && (
-                        <p className="text-sm text-gray-600 mt-1">
-                          Phone: {waiter.phone}
-                        </p>
-                      )}
-                      {waiter.email && (
-                        <p className="text-sm text-gray-600 mt-1">
-                          Email: {waiter.email}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-on-surface-variant text-sm">
-                  No waiters yet. Add your first waiter!
-                </p>
-              )}
-            </div>
-          </section>
-        )}
 
         {activeTab === "analytics" && (
           <section className="px-8 mt-8 max-w-screen-2xl mx-auto">
