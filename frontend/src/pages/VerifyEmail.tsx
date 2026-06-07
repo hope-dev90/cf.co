@@ -39,12 +39,6 @@ const VerifyEmail: React.FC = () => {
 
     try {
       const result = await authApi.resendOtp(email);
-
-      if ((result.message || "").toLowerCase().includes("sign in now")) {
-        navigate("/login", { state: { email } });
-        return;
-      }
-
       alert(result.message || "Verification code resent!");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to resend OTP");

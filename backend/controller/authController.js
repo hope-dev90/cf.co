@@ -35,7 +35,6 @@ const generateOtp = () => {
 
 const normalizeEmail = (email) => email.trim().toLowerCase();
 
-const isDevEnvironment = () => process.env.NODE_ENV !== "production";
 
 // Initialize Google OAuth client
 const googleClient = new OAuth2Client(
@@ -248,17 +247,13 @@ export const register = async (req, res) => {
       console.error("register email error:", emailError);
     }
 
-    const readyToSignIn = !emailSent || isDevEnvironment();
-    if (readyToSignIn) {
-      await markEmailVerified(normalizedEmail);
-      await clearOtp(normalizedEmail);
+    if (!emailSent) {
+      console.log(`[DEV] OTP for ${normalizedEmail}: ${otp}`);
     }
 
     return res.status(201).json({
       success: true,
-      message: readyToSignIn
-        ? "Registration successful! Your account is ready to use. You can sign in now."
-        : "Registration successful! Check your email for the verification code.",
+      message: "Registration successful! Check your email for the verification code.",
       user: {
         id: user.id,
         name: user.name,
@@ -329,13 +324,8 @@ export const resendOtp = async (req, res) => {
       console.error("resendOtp email error:", emailError);
     }
 
-    if (!emailSent || isDevEnvironment()) {
-      await markEmailVerified(normalizedEmail);
-      await clearOtp(normalizedEmail);
-      return res.status(200).json({
-        success: true,
-        message: "Your account is ready to use. You can sign in now.",
-      });
+    if (!emailSent) {
+      console.log(`[DEV] OTP for ${normalizedEmail}: ${otp}`);
     }
 
     return res.status(200).json({
@@ -423,17 +413,11 @@ export const login = async (req, res) => {
     }
 
     if (!user.is_verified) {
-      if (isDevEnvironment()) {
-        await markEmailVerified(normalizedEmail);
-        user.is_verified = true;
-        console.log("Auto-verified user in dev mode");
-      } else {
-        return res.status(400).json({
-          success: false,
-          message: "Please verify your email first",
-          requiresVerification: true,
-        });
-      }
+      return res.status(400).json({
+        success: false,
+        message: "Please verify your email first",
+        requiresVerification: true,
+      });
     }
 
     if (!user.password) {
