@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { Loader2 } from "lucide-react";
@@ -15,6 +15,14 @@ const getDashboardPath = (role: string) => {
   return "/dashboard";
 };
 
+const SLIDESHOW_IMAGES = [
+  "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&h=1200&fit=crop",
+  "https://i.pinimg.com/1200x/0f/5f/7c/0f5f7ce47edeaf035b7699c999e9dc8c.jpg",
+  "https://i.pinimg.com/736x/d5/e4/e0/d5e4e05c5babececb0c025d1ed4b77e6.jpg",
+  "https://i.pinimg.com/736x/c5/4e/4e/c54e4e8e2c683a16548a28fe837acace.jpg",
+  "https://i.pinimg.com/1200x/4b/44/c7/4b44c74e7861fefef1da0e875c40e3ec.jpg",
+];
+
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -24,6 +32,15 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % SLIDESHOW_IMAGES.length);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,11 +90,18 @@ const LoginPage: React.FC = () => {
     <div className="min-h-screen flex bg-[#fef8f3]">
       {/* RIGHT */}
       <div className="hidden lg:flex lg:w-1/2 items-center justify-center bg-[#1a1a2e] text-white items-center justify-center overflow-hidden p-8">
-        <img
-          src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&h=1200&fit=crop"
-          alt="CF Company Welcome"
-          className="max-h-[80vh] w-auto rounded-3xl object-cover shadow-2xl"
-        />
+        <div className="relative max-h-[80vh] w-auto">
+          {SLIDESHOW_IMAGES.map((image, index) => (
+            <img
+              key={index}
+              src={image}
+              alt={`Slide ${index + 1}`}
+              className={`absolute inset-0 max-h-[80vh] w-auto rounded-3xl object-cover shadow-2xl transition-opacity duration-1000 ${
+                index === currentSlide ? "opacity-100" : "opacity-0"
+              }`}
+            />
+          ))}
+        </div>
       </div>
 
       {/* LEFT */}

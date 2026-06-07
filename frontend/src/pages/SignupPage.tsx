@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   User,
@@ -11,6 +11,15 @@ import {
 } from "lucide-react";
 import { GoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../hooks/useAuth";
+
+// Slideshow images
+const SLIDESHOW_IMAGES = [
+  "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&h=1200&fit=crop",
+  "https://i.pinimg.com/1200x/0f/5f/7c/0f5f7ce47edeaf035b7699c999e9dc8c.jpg",
+  "https://i.pinimg.com/736x/d5/e4/e0/d5e4e05c5babececb0c025d1ed4b77e6.jpg",
+  "https://i.pinimg.com/736x/c5/4e/4e/c54e4e8e2c683a16548a28fe837acace.jpg",
+  "https://i.pinimg.com/1200x/4b/44/c7/4b44c74e7861fefef1da0e875c40e3ec.jpg",
+];
 
 // Check if Google login is enabled
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -70,6 +79,15 @@ const SignupPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [error, setError] = useState("");
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % SLIDESHOW_IMAGES.length);
+    }, 1500);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Restaurant details state
   const [restaurantName, setRestaurantName] = useState("");
@@ -117,19 +135,26 @@ const SignupPage: React.FC = () => {
     }
 
     try {
-      const restaurantData = selectedRole === "restaurant_owner" 
-        ? { 
-            restaurantName,
-            restaurantDescription, 
-            restaurantPhone, 
-            cuisineType, 
-            address, 
-            city, 
-            operatingHours 
-          } 
-        : null;
-      
-      const result = await signUp(email, password, fullName, selectedRole, restaurantData);
+      const restaurantData =
+        selectedRole === "restaurant_owner"
+          ? {
+              restaurantName,
+              restaurantDescription,
+              restaurantPhone,
+              cuisineType,
+              address,
+              city,
+              operatingHours,
+            }
+          : null;
+
+      const result = await signUp(
+        email,
+        password,
+        fullName,
+        selectedRole,
+        restaurantData,
+      );
 
       if (result.message.toLowerCase().includes("sign in now")) {
         navigate("/login", { state: { email } });
@@ -167,11 +192,18 @@ const SignupPage: React.FC = () => {
     <div className="min-h-screen flex bg-[#fef8f3]">
       {/* RIGHT */}
       <div className="hidden lg:flex lg:w-1/2 items-center justify-center bg-[#1a1a2e] text-white items-center justify-center overflow-hidden p-8">
-        <img
-          src="https://i.pinimg.com/736x/b1/8a/84/b18a84834c9fd0373ae6b92a08214130.jpg"
-          alt="CF Company Welcome"
-          className="max-h-[80vh] w-auto rounded-3xl object-cover shadow-2xl"
-        />
+        <div className="relative max-h-[80vh] w-auto">
+          {SLIDESHOW_IMAGES.map((image, index) => (
+            <img
+              key={index}
+              src={image}
+              alt={`Slide ${index + 1}`}
+              className={`absolute inset-0 max-h-[80vh] w-auto rounded-3xl object-cover shadow-2xl transition-opacity duration-1000 ${
+                index === currentSlide ? "opacity-100" : "opacity-0"
+              }`}
+            />
+          ))}
+        </div>
       </div>
 
       {/* LEFT */}
