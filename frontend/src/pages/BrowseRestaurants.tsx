@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { Search, ArrowLeft, Plus } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { restaurantApi } from "../lib/api";
-import type { ApiRestaurant } from "../types/booking";
 
 interface RestaurantCard {
   id: number;

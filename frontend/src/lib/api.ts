@@ -7,7 +7,7 @@ interface ApiUser {
   role: Role;
 }
 
-interface ApiResponse {
+interface ApiResponse<_T = unknown> {
   success: boolean;
   message?: string;
   [key: string]: unknown;

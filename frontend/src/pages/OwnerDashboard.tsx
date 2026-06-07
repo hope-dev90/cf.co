@@ -249,11 +249,11 @@ const OwnerDashboard: React.FC = () => {
     "today" | "week" | "month" | "all"
   >("today");
   const [totalRevenue] = useState(0);
-  const [previousPeriodRevenue] = useState(0);
+  const [_previousPeriodRevenue] = useState(0);
   const [totalOrdersCount] = useState(0);
   const [averageOrderValue] = useState(0);
-  const [topSellingItems] = useState<any[]>([]);
-  const [ordersByStatus] = useState({
+  const [_topSellingItems] = useState<any[]>([]);
+  const [_ordersByStatus] = useState({
     pending: 0,
     confirmed: 0,
     preparing: 0,
@@ -261,13 +261,13 @@ const OwnerDashboard: React.FC = () => {
     delivered: 0,
     cancelled: 0,
   });
-  const [peakHours] = useState({
+  const [_peakHours] = useState({
     morning: 0,
     afternoon: 0,
     evening: 0,
     night: 0,
   });
-  const [customerInsights] = useState({
+  const [_customerInsights] = useState({
     newCustomers: 0,
     returningCustomers: 0,
     averageOrderValueByType: { new: 0, returning: 0 },
