@@ -120,16 +120,16 @@ const BookingFlow: React.FC<BookingFlowProps> = ({
       setError("");
       try {
         const data = await restaurantApi.getMenu(restaurant.id);
-        const items = data.menu || [];
-        if (items.length === 0) {
-          setMenuItems(DEMO_MENU);
-          setUseDemoData(true);
-        } else {
-          setMenuItems(items.filter((item: MenuItem) => item.is_available));
-        }
-      } catch {
-        setMenuItems(DEMO_MENU);
-        setUseDemoData(true);
+        const items = data.menuItems || [];
+        const availableItems = items.filter(
+          (item: MenuItem) => item.is_available,
+        );
+        setMenuItems(availableItems);
+        setUseDemoData(false);
+      } catch (err) {
+        console.error("Error loading menu:", err);
+        setMenuItems([]);
+        setUseDemoData(false);
       } finally {
         setLoading(false);
       }
@@ -585,6 +585,10 @@ const BookingFlow: React.FC<BookingFlowProps> = ({
                       className="animate-spin text-[#e8722a]"
                       size={32}
                     />
+                  </div>
+                ) : menuItems.length === 0 ? (
+                  <div className="flex h-48 items-center justify-center">
+                    <p className="text-lg text-gray-500">No menu right now</p>
                   </div>
                 ) : (
                   <div className="grid gap-4 md:grid-cols-2">
