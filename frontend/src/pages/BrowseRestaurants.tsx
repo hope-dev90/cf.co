@@ -82,247 +82,237 @@ const BrowseRestaurants: React.FC = () => {
                   className="px-4 py-2 bg-[#e8722a] text-white text-sm font-semibold rounded-lg hover:bg-[#d4631f] transition-colors">
                   Sign Up
                 </Link>
-              id: String(restaurant.id),
-              name: restaurant.name,
-              cuisine: restaurant.cuisine_type || "Restaurant",
-              rating: 4.5 + (index % 5) * 0.1,
-              description: restaurant.description || "We cook delicious food!",
-              image: RESTAURANT_IMAGES[index % RESTAURANT_IMAGES.length],
-              raw: restaurant,
-            }),
-          );
-          setRestaurants(mappedRestaurants);
-        } else {
-          const mappedFallback = FALLBACK_RESTAURANTS.map((r, index) => ({
-            ...r,
-            image: RESTAURANT_IMAGES[index % RESTAURANT_IMAGES.length],
-            raw: r,
-          }));
-          setRestaurants(mappedFallback);
-        }
-      } catch (err) {
-        console.error("Error fetching restaurants:", err);
-        const mappedFallback = FALLBACK_RESTAURANTS.map((r, index) => ({
-          ...r,
-          image: RESTAURANT_IMAGES[index % RESTAURANT_IMAGES.length],
-          raw: r,
-        }));
-        setRestaurants(mappedFallback);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchRestaurants();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-body-lg text-on-surface">Loading...</div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="text-on-surface">
-      {/* TopNavBar */}
-      <header className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-margin-desktop h-20 max-w-container-max mx-auto bg-surface shadow-sm">
-        <Link
-          to="/"
-          className="flex items-center gap-base cursor-pointer hover:opacity-80 transition-opacity"
-        >
-          <span className="material-symbols-outlined text-primary">
-            arrow_back
-          </span>
-          <span className="font-label-bold text-label-bold text-on-surface-variant uppercase tracking-wider">
-            Back Home
-          </span>
-        </Link>
-
-        <div className="absolute left-1/2 -translate-x-1/2 text-center">
-          <h1 className="text-headline-md font-headline-md font-bold text-primary">
-            Browse Restaurants
-          </h1>
-          <p className="text-body-sm font-body-sm text-on-surface-variant">
-            Discover amazing food near you
-          </p>
+              </>
+            )}
+            {/* Hamburger */}
+            <button
+              onClick={() => setMobileMenuOpen((o) => !o)}
+              className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              aria-label="Menu"
+            >
+              <span className="material-symbols-outlined text-xl text-[#1a1a2e]">
+                {mobileMenuOpen ? "close" : "menu"}
+              </span>
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-md">
-          <nav className="hidden md:flex gap-md items-center">
-            <Link
-              to="/"
-              className="text-primary border-b-2 border-primary pb-1 font-label-bold text-label-bold hover:text-primary transition-colors"
-            >
-              Home
-            </Link>
-          </nav>
-          {profile ? (
-            <Link
-              to={
-                profile.role === "admin"
-                  ? "/admin"
-                  : profile.role === "restaurateur"
-                    ? "/owner"
-                    : "/dashboard"
-              }
-              className="bg-primary-container text-on-primary font-label-bold text-label-bold py-xs px-sm rounded hover:opacity-90 transition-opacity"
-            >
-              Dashboard
-            </Link>
-          ) : (
-            <Link
-              to="/login"
-              className="bg-primary-container text-on-primary font-label-bold text-label-bold py-xs px-sm rounded hover:opacity-90 transition-opacity"
-            >
-              Sign In
-            </Link>
-          )}
-        </div>
+        {/* Mobile dropdown */}
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-white border-t border-gray-100 px-4 py-3 space-y-2">
+            <Link to="/" onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 rounded-lg text-sm text-[#4a4a68] hover:bg-[#faf5f0]">Home</Link>
+            <Link to="/restaurants" onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 rounded-lg text-sm font-semibold text-[#e8722a]">Restaurants</Link>
+            {profile ? (
+              <Link to={dashboardPath} onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-lg text-sm font-semibold text-white bg-[#e8722a] text-center">Dashboard</Link>
+            ) : (
+              <div className="flex gap-2 pt-1">
+                <Link to="/login" onClick={() => setMobileMenuOpen(false)}
+                  className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold text-[#e8722a] border border-[#e8722a] text-center">Login</Link>
+                <Link to="/signup" onClick={() => setMobileMenuOpen(false)}
+                  className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold text-white bg-[#e8722a] text-center">Sign Up</Link>
+              </div>
+            )}
+          </div>
+        )}
       </header>
 
-      {/* Main Content */}
-      <main className="pt-32 pb-xl px-margin-desktop max-w-container-max mx-auto min-h-screen">
-        {/* Search Bar */}
-        <section className="mb-lg">
-          <div className="relative w-full max-w-container-max">
-            <span className="material-symbols-outlined absolute left-base top-1/2 -translate-y-1/2 text-on-secondary-fixed-variant">
+      {/* ── Hero banner ── */}
+      <section className="pt-16 bg-gradient-to-br from-[#1a1a2e] to-[#16213e] text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16 text-center">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3">
+            Browse Restaurants
+          </h1>
+          <p className="text-white/70 text-base sm:text-lg mb-8 max-w-xl mx-auto">
+            Discover amazing dining experiences near you
+          </p>
+          {/* Search */}
+          <div className="relative max-w-lg mx-auto">
+            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[#4a4a68] text-xl pointer-events-none">
               search
             </span>
             <input
               ref={searchRef}
-              className="w-full h-14 pl-12 pr-base rounded bg-surface border-b-2 border-surface-dim focus:border-primary-container focus:ring-0 transition-all text-body-md font-body-md outline-none custom-shadow"
-              placeholder="Search restaurants by name or cuisine..."
               type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name or cuisine…"
+              className="w-full h-12 pl-12 pr-4 rounded-xl bg-white text-[#1a1a2e] text-sm shadow-lg focus:outline-none focus:ring-2 focus:ring-[#e8722a] transition-all"
             />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#4a4a68] hover:text-[#1a1a2e]"
+              >
+                <span className="material-symbols-outlined text-lg">close</span>
+              </button>
+            )}
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* Restaurant Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg">
-          {restaurants.map((restaurant) => (
-            <article
-              key={restaurant.id}
-              className="bg-surface-container-lowest rounded-xl overflow-hidden custom-shadow group cursor-pointer transform hover:-translate-y-2 transition-transform duration-300"
-            >
-              <div className="aspect-video overflow-hidden">
-                <img
-                  alt={restaurant.name}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  src={restaurant.image}
-                />
+      {/* ── Main content ── */}
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10 pb-24 md:pb-10">
+        {/* Result count */}
+        {!loading && !error && (
+          <p className="text-sm text-[#4a4a68] mb-6">
+            {search
+              ? `${filtered.length} result${filtered.length !== 1 ? "s" : ""} for "${search}"`
+              : `${restaurants.length} restaurant${restaurants.length !== 1 ? "s" : ""} available`}
+          </p>
+        )}
+
+        {/* Loading skeletons */}
+        {loading && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-2xl overflow-hidden shadow-sm animate-pulse">
+                <div className="h-48 bg-gray-200" />
+                <div className="p-5 space-y-3">
+                  <div className="h-5 bg-gray-200 rounded w-3/4" />
+                  <div className="h-4 bg-gray-200 rounded w-1/3" />
+                  <div className="h-4 bg-gray-200 rounded w-full" />
+                  <div className="h-10 bg-gray-200 rounded-xl" />
+                </div>
               </div>
-              <div className="p-md space-y-base">
-                <div className="flex justify-between items-start">
-                  <h2 className="text-headline-sm font-headline-sm text-on-surface">
+            ))}
+          </div>
+        )}
+
+        {/* Error */}
+        {!loading && error && (
+          <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+            <span className="material-symbols-outlined text-5xl text-red-400">error</span>
+            <p className="text-[#1a1a2e] font-semibold">{error}</p>
+            <button
+              onClick={() => { setError(""); setLoading(true); restaurantApi.getAll().then(d => setRestaurants(d.restaurants || [])).catch(() => setError("Failed to load")).finally(() => setLoading(false)); }}
+              className="px-6 py-2 bg-[#e8722a] text-white text-sm font-semibold rounded-lg hover:bg-[#d4631f] transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* Empty */}
+        {!loading && !error && filtered.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+            <span className="material-symbols-outlined text-5xl text-[#4a4a68] opacity-40">
+              {restaurants.length === 0 ? "storefront" : "search_off"}
+            </span>
+            <p className="text-lg font-semibold text-[#1a1a2e]">
+              {restaurants.length === 0 ? "No restaurants yet" : "No matches found"}
+            </p>
+            <p className="text-sm text-[#4a4a68] max-w-xs">
+              {restaurants.length === 0
+                ? "Be the first! Sign up as a restaurant owner to add yours."
+                : `No restaurants match "${search}". Try a different search.`}
+            </p>
+            {search && (
+              <button onClick={() => setSearch("")}
+                className="px-5 py-2 border border-[#e8722a] text-[#e8722a] text-sm font-semibold rounded-lg hover:bg-[#faf5f0] transition-colors">
+                Clear search
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Restaurant grid */}
+        {!loading && !error && filtered.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filtered.map((restaurant, index) => (
+              <article
+                key={restaurant.id}
+                className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group flex flex-col"
+              >
+                {/* Image */}
+                <div className="relative h-48 overflow-hidden bg-gray-100 shrink-0">
+                  <img
+                    src={FOOD_IMAGES[index % FOOD_IMAGES.length]}
+                    alt={restaurant.name}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+                  {/* Cuisine pill */}
+                  {restaurant.cuisine_type && (
+                    <span className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-[#e8722a] text-xs font-bold px-3 py-1 rounded-full shadow">
+                      {restaurant.cuisine_type}
+                    </span>
+                  )}
+                </div>
+
+                {/* Content */}
+                <div className="p-5 flex flex-col flex-1">
+                  <h2 className="text-lg font-bold text-[#1a1a2e] mb-1 line-clamp-1">
                     {restaurant.name}
                   </h2>
-                  <div className="flex items-center text-primary-container">
-                    <span
-                      className="material-symbols-outlined text-sm"
-                      style={{ fontVariationSettings: "'FILL' 1;" }}
-                    >
-                      star
-                    </span>
-                    <span className="text-label-bold font-label-bold ml-1">
-                      {restaurant.rating.toFixed(1)}
-                    </span>
-                  </div>
-                </div>
-                <p className="text-label-bold font-label-bold text-primary-container uppercase tracking-widest">
-                  {restaurant.cuisine}
-                </p>
-                <p className="text-body-md font-body-md text-on-secondary-fixed-variant line-clamp-2">
-                  {restaurant.description}
-                </p>
-                <Link
-                  to={`/restaurants/${restaurant.id}`}
-                  className="w-full mt-md bg-primary-container text-on-primary font-label-bold text-label-bold py-sm rounded-lg hover:brightness-110 active:scale-95 transition-all shadow-md block text-center"
-                >
-                  Book a Table
-                </Link>
-              </div>
-            </article>
-          ))}
-        </div>
 
-        {/* Load More */}
-        <div className="mt-xl flex justify-center">
-          <button className="flex items-center gap-xs text-primary font-label-bold text-label-bold hover:underline py-base px-lg transition-all">
-            VIEW MORE RESTAURANTS
-            <span className="material-symbols-outlined">expand_more</span>
-          </button>
-        </div>
+                  {restaurant.description && (
+                    <p className="text-sm text-[#4a4a68] line-clamp-2 mb-3 flex-1">
+                      {restaurant.description}
+                    </p>
+                  )}
+
+                  {/* Meta row */}
+                  <div className="flex items-center gap-3 text-xs text-[#4a4a68] mb-4">
+                    {restaurant.phone && (
+                      <span className="flex items-center gap-1">
+                        <span className="material-symbols-outlined text-sm">phone</span>
+                        {restaurant.phone}
+                      </span>
+                    )}
+                    {restaurant.email && (
+                      <span className="flex items-center gap-1 truncate">
+                        <span className="material-symbols-outlined text-sm">mail</span>
+                        <span className="truncate">{restaurant.email}</span>
+                      </span>
+                    )}
+                  </div>
+
+                  <Link
+                    to={`/restaurants/${restaurant.id}`}
+                    className="mt-auto w-full py-2.5 bg-[#1a1a2e] hover:bg-[#e8722a] text-white text-sm font-semibold rounded-xl transition-all duration-300 text-center active:scale-95"
+                  >
+                    Book a Table
+                  </Link>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </main>
 
-      {/* Footer */}
-      <footer className="w-full py-lg px-margin-desktop flex flex-col md:flex-row justify-between items-center gap-md bg-surface-container">
-        <div className="text-center md:text-left">
-          <h2 className="text-headline-sm font-headline-sm text-secondary">
-            GourmetConcierge
-          </h2>
-          <p className="text-body-sm font-body-sm text-on-secondary-fixed-variant mt-1">
-            © 2024 GourmetConcierge. All rights reserved.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap justify-center gap-md">
-          <a
-            href="#"
-            className="text-label-bold font-label-bold text-on-secondary-fixed-variant hover:underline transition-all active:scale-95"
-          >
-            About Us
-          </a>
-          <a
-            href="#"
-            className="text-label-bold font-label-bold text-on-secondary-fixed-variant hover:underline transition-all active:scale-95"
-          >
-            Terms of Service
-          </a>
-          <a
-            href="#"
-            className="text-label-bold font-label-bold text-on-secondary-fixed-variant hover:underline transition-all active:scale-95"
-          >
-            Privacy Policy
-          </a>
-          <a
-            href="#"
-            className="text-label-bold font-label-bold text-on-secondary-fixed-variant hover:underline transition-all active:scale-95"
-          >
-            Contact Support
-          </a>
+      {/* ── Footer ── */}
+      <footer className="bg-[#1a1a2e] text-gray-400 py-8 px-4">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <img src="/logo.png" alt="CF Company" className="h-7 w-auto" />
+            <span className="text-white font-semibold">CF Company</span>
+          </div>
+          <p>© 2024 CF Company. All rights reserved.</p>
+          <div className="flex gap-4">
+            <a href="#" className="hover:text-[#e8722a] transition-colors">Privacy</a>
+            <a href="#" className="hover:text-[#e8722a] transition-colors">Terms</a>
+            <a href="#" className="hover:text-[#e8722a] transition-colors">Contact</a>
+          </div>
         </div>
       </footer>
 
-      {/* Mobile Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 w-full md:hidden bg-surface-container-highest flex justify-around items-center h-16 shadow-lg z-50">
-        <Link
-          to="/browse"
-          className="flex flex-col items-center gap-1 text-primary"
-        >
-          <span
-            className="material-symbols-outlined"
-            style={{ fontVariationSettings: "'FILL' 1;" }}
-          >
-            restaurant
-          </span>
-          <span className="text-[10px] font-label-bold uppercase">Browse</span>
+      {/* ── Mobile bottom nav ── */}
+      <nav className="fixed bottom-0 inset-x-0 md:hidden bg-white border-t border-gray-100 flex justify-around items-center h-16 z-50 shadow-lg">
+        <Link to="/" className="flex flex-col items-center gap-0.5 text-[#4a4a68] hover:text-[#e8722a] transition-colors">
+          <span className="material-symbols-outlined text-xl">home</span>
+          <span className="text-[10px] font-semibold">Home</span>
         </Link>
-        <Link
-          to="/dashboard"
-          className="flex flex-col items-center gap-1 text-on-secondary-fixed-variant"
-        >
-          <span className="material-symbols-outlined">bookmark</span>
-          <span className="text-[10px] font-label-bold uppercase">
-            Bookings
-          </span>
+        <Link to="/restaurants" className="flex flex-col items-center gap-0.5 text-[#e8722a]">
+          <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>restaurant</span>
+          <span className="text-[10px] font-semibold">Restaurants</span>
         </Link>
-        <Link
-          to="/profile"
-          className="flex flex-col items-center gap-1 text-on-secondary-fixed-variant"
-        >
-          <span className="material-symbols-outlined">person</span>
-          <span className="text-[10px] font-label-bold uppercase">Profile</span>
+        <Link to={profile ? dashboardPath : "/login"} className="flex flex-col items-center gap-0.5 text-[#4a4a68] hover:text-[#e8722a] transition-colors">
+          <span className="material-symbols-outlined text-xl">person</span>
+          <span className="text-[10px] font-semibold">{profile ? "Dashboard" : "Login"}</span>
         </Link>
       </nav>
     </div>

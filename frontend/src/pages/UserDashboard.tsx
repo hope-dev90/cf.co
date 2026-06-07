@@ -400,7 +400,8 @@ const UserDashboard: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-[#faf5f0]">
-      <div className="flex w-64 flex-col bg-[#1a1a2e] shadow-lg">
+      {/* Sidebar */}
+      <div className="hidden md:flex w-64 flex-col flex-shrink-0 bg-[#1a1a2e] shadow-lg">
         <div className="flex items-center gap-3 border-b border-gray-700 p-6">
           <img src="/logo.png" alt="CF Company" className="h-10 w-auto" />
           <span className="text-xl font-bold text-white">CF Company</span>
@@ -469,9 +470,32 @@ const UserDashboard: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto">
+      {/* Mobile bottom nav */}
+      <nav className="fixed bottom-0 inset-x-0 md:hidden bg-[#1a1a2e] flex justify-around items-center h-16 z-50 shadow-lg">
+        {[
+          { id: "browse", label: "Browse", icon: Search },
+          { id: "orders", label: "Orders", icon: ShoppingBag },
+          { id: "profile", label: "Profile", icon: User },
+        ].map((item) => {
+          const Icon = item.icon;
+          const isActive = activeTab === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setActiveTab(item.id as any)}
+              className={`flex flex-col items-center gap-0.5 px-4 py-2 transition-colors ${isActive ? "text-[#e8722a]" : "text-gray-400"}`}
+            >
+              <Icon size={20} />
+              <span className="text-[10px] font-semibold">{item.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+
+      <div className="flex-1 overflow-auto pb-16 md:pb-0">
         {activeTab === "browse" && (
-          <div className="p-8">
+          <div className="p-4 md:p-8">
             <div className="mb-8">
               <h1 className="mb-2 text-4xl font-bold text-gray-900">
                 Welcome back, {userName}!
@@ -519,7 +543,7 @@ const UserDashboard: React.FC = () => {
                 <Loader className="animate-spin text-[#e8722a]" size={32} />
               </div>
             ) : filteredRestaurants.length > 0 ? (
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
                 {filteredRestaurants.map((restaurant) => (
                   <RestaurantCard
                     key={restaurant.id}
@@ -543,7 +567,7 @@ const UserDashboard: React.FC = () => {
         )}
 
         {activeTab === "orders" && (
-          <div className="p-8">
+          <div className="p-4 md:p-8">
             <div className="mb-8">
               <h1 className="mb-2 text-4xl font-bold text-gray-900">
                 My Orders
@@ -595,7 +619,7 @@ const UserDashboard: React.FC = () => {
         )}
 
         {activeTab === "profile" && (
-          <div className="max-w-2xl p-8">
+          <div className="max-w-2xl p-4 md:p-8">
             <div className="mb-8">
               <h1 className="mb-2 text-4xl font-bold text-gray-900">
                 My Profile
