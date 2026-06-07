@@ -727,6 +727,29 @@ const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [search, setSearch] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const searchRef = React.useRef<HTMLInputElement>(null);
+  const mobileSearchRef = React.useRef<HTMLInputElement>(null);
+
+  // ⌘K / Ctrl+K shortcut
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  // Focus mobile input when opened
+  useEffect(() => {
+    if (mobileSearchOpen) {
+      setTimeout(() => mobileSearchRef.current?.focus(), 50);
+    }
+  }, [mobileSearchOpen]);
 
   const handleLogout = useCallback(async () => {
     await logout();
@@ -800,46 +823,109 @@ const AdminDashboard: React.FC = () => {
       <div className="flex-1 flex flex-col min-w-0">
 
         {/* Top header */}
-        <header className="sticky top-0 z-30 bg-surface-container-lowest border-b border-outline-variant px-6 py-3 flex items-center gap-4">
-          {/* Toggle */}
+        <header className="sticky top-0 z-30 bg-surface-container-lowest border-b border-outline-variant px-4 md:px-6 py-3 flex items-center gap-3">
+          {/* Sidebar toggle */}
           <button
             onClick={() => setSidebarOpen(o => !o)}
             className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-surface-container transition-colors flex-shrink-0"
+            aria-label="Toggle sidebar"
           >
             <span className="material-symbols-outlined text-on-surface-variant text-xl">
               {sidebarOpen ? "menu_open" : "menu"}
             </span>
           </button>
 
-          {/* Title */}
-          <h2 className="text-headline-sm font-bold text-on-surface hidden sm:block">
+          {/* Page title */}
+          <h2 className="text-headline-sm font-bold text-on-surface hidden sm:block flex-shrink-0">
             {NAV_ITEMS.find(n => n.id === activeTab)?.label}
           </h2>
 
           <div className="flex-1" />
 
-          {/* Search */}
-          <div className="hidden md:flex items-center gap-2 bg-surface-container-low rounded-full px-4 py-2 w-56 border border-outline-variant focus-within:border-primary-container transition-all">
-            <span className="material-symbols-outlined text-on-surface-variant text-[18px]">search</span>
+          {/* ── Desktop search ── */}
+          <div
+            className={`hidden md:flex items-center gap-2 rounded-xl border px-3 py-2 transition-all duration-200 ${
+              searchFocused
+                ? "w-72 border-primary-container bg-surface shadow-sm"
+                : "w-48 border-outline-variant bg-surface-container-low hover:border-primary-container/50 hover:bg-surface"
+            }`}
+          >
+            <span className={`material-symbols-outlined text-[18px] flex-shrink-0 transition-colors ${searchFocused ? "text-primary-container" : "text-on-surface-variant"}`}>
+              search
+            </span>
             <input
+              ref={searchRef}
               type="text"
-              placeholder="Quick search…"
+              placeholder="Search…"
               value={search}
               onChange={e => setSearch(e.target.value)}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
               className="bg-transparent text-body-sm text-on-surface outline-none w-full placeholder:text-on-surface-variant"
             />
+            {search ? (
+              <button
+                onMouseDown={e => { e.preventDefault(); setSearch(""); searchRef.current?.focus(); }}
+                className="flex-shrink-0 w-4 h-4 rounded-full bg-on-surface-variant/20 hover:bg-on-surface-variant/40 flex items-center justify-center transition-colors"
+                aria-label="Clear search"
+              >
+                <span className="material-symbols-outlined text-[12px] text-on-surface-variant">close</span>
+              </button>
+            ) : (
+              <kbd className={`flex-shrink-0 hidden lg:flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-mono border transition-opacity ${searchFocused ? "opacity-0 pointer-events-none" : "opacity-70 border-outline-variant text-on-surface-variant"}`}>
+                <span className="text-[11px]">⌘</span>K
+              </kbd>
+            )}
           </div>
 
+          {/* ── Mobile search icon ── */}
+          <button
+            onClick={() => setMobileSearchOpen(o => !o)}
+            className={`md:hidden w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${mobileSearchOpen ? "bg-surface-container text-primary-container" : "hover:bg-surface-container text-on-surface-variant"}`}
+            aria-label="Search"
+          >
+            <span className="material-symbols-outlined text-xl">search</span>
+          </button>
+
           {/* Notification */}
-          <button className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-surface-container transition-colors relative">
+          <button
+            className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-surface-container transition-colors relative"
+            aria-label="Notifications"
+          >
             <span className="material-symbols-outlined text-on-surface-variant text-xl">notifications</span>
           </button>
 
           {/* Avatar */}
-          <div className="w-9 h-9 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-container font-bold text-body-sm flex-shrink-0">
+          <div className="w-9 h-9 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-container font-bold text-body-sm flex-shrink-0 select-none">
             {user?.email?.charAt(0).toUpperCase() || "A"}
           </div>
         </header>
+
+        {/* ── Mobile search bar (dropdown) ── */}
+        {mobileSearchOpen && (
+          <div className="md:hidden px-4 py-2 bg-surface-container-lowest border-b border-outline-variant">
+            <div className="flex items-center gap-2 rounded-xl border border-primary-container bg-surface px-3 py-2 shadow-sm">
+              <span className="material-symbols-outlined text-primary-container text-[18px] flex-shrink-0">search</span>
+              <input
+                ref={mobileSearchRef}
+                type="text"
+                placeholder="Search anything…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="bg-transparent text-body-sm text-on-surface outline-none flex-1 placeholder:text-on-surface-variant"
+              />
+              {search ? (
+                <button onClick={() => setSearch("")} className="flex-shrink-0">
+                  <span className="material-symbols-outlined text-on-surface-variant text-base">close</span>
+                </button>
+              ) : (
+                <button onClick={() => setMobileSearchOpen(false)} className="flex-shrink-0">
+                  <span className="material-symbols-outlined text-on-surface-variant text-base">keyboard_hide</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Content area */}
         <main className="flex-1 p-6 md:p-8 overflow-auto">
