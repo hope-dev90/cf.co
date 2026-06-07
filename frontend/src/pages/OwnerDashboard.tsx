@@ -614,6 +614,17 @@ const OwnerDashboard: React.FC = () => {
             <h1 className="text-2xl font-bold">CF Company</h1>
           </div>
 
+          {/* Back Home */}
+          <div className="mb-6">
+            <Link
+              to="/"
+              className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-[#16213e] transition-all"
+            >
+              <Home className="w-5 h-5" />
+              <span>Back Home</span>
+            </Link>
+          </div>
+
           {/* Owner Badge */}
           <div className="flex items-center gap-2 mb-6 p-3 bg-[#16213e] rounded-lg">
             <Store className="w-5 h-5 text-[#e8722a]" />

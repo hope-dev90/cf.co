@@ -18,9 +18,10 @@ import {
   Clock,
   CheckCircle,
   Star,
+  Home,
 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 // Sample data types
 interface User {
@@ -965,6 +966,14 @@ const AdminDashboard: React.FC = () => {
             <img src="/logo.png" alt="CF Company" className="h-10 w-auto" />
             <h1 className="text-2xl font-bold">CF Company</h1>
           </div>
+
+          <Link
+            to="/"
+            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-800 transition-colors mb-4"
+          >
+            <Home size={20} />
+            <span className="font-medium">Back Home</span>
+          </Link>
 
           <div className="flex items-center gap-2 bg-[#e8722a] bg-opacity-20 px-3 py-2 rounded-lg border border-[#e8722a] border-opacity-30">
             <Shield size={16} className="text-[#e8722a]" />
