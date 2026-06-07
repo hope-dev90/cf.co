@@ -610,7 +610,14 @@ export const getOrderById = async (id) => {
     `SELECT * FROM order_items WHERE order_id = $1`,
     [id],
   );
-  return { ...result.rows[0], items: itemsResult.rows };
+  return { 
+    ...result.rows[0], 
+    total_amount: Number(result.rows[0].total_amount),
+    items: itemsResult.rows.map(item => ({
+      ...item,
+      unit_price: Number(item.unit_price)
+    })) 
+  };
 };
 
 export const getOrdersByUser = async (user_id) => {
@@ -634,12 +641,16 @@ export const getOrdersByUser = async (user_id) => {
 
   const itemsByOrder = itemsResult.rows.reduce((acc, item) => {
     if (!acc[item.order_id]) acc[item.order_id] = [];
-    acc[item.order_id].push(item);
+    acc[item.order_id].push({
+      ...item,
+      unit_price: Number(item.unit_price)
+    });
     return acc;
   }, {});
 
   return orders.map((order) => ({
     ...order,
+    total_amount: Number(order.total_amount),
     items: itemsByOrder[order.id] || [],
   }));
 };
@@ -656,7 +667,10 @@ export const getOrdersByRestaurant = async (restaurant_id, status = null) => {
   query += ` ORDER BY created_at DESC`;
 
   const result = await pool.query(query, params);
-  return result.rows;
+  return result.rows.map(order => ({
+    ...order,
+    total_amount: Number(order.total_amount)
+  }));
 };
 
 export const getOrdersByRestaurantWithItems = async (
@@ -681,7 +695,11 @@ export const getOrdersByRestaurantWithItems = async (
       `SELECT * FROM order_items WHERE order_id = $1`,
       [order.id],
     );
-    order.items = itemsResult.rows;
+    order.total_amount = Number(order.total_amount);
+    order.items = itemsResult.rows.map(item => ({
+      ...item,
+      unit_price: Number(item.unit_price)
+    }));
   }
 
   return orders;
@@ -692,7 +710,13 @@ export const updateOrderStatus = async (id, status) => {
     `UPDATE restaurant_orders SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
     [status, id],
   );
-  return result.rows[0];
+  if(result.rows[0]) {
+    return {
+      ...result.rows[0],
+      total_amount: Number(result.rows[0].total_amount)
+    };
+  }
+  return null;
 };
 
 export const updateOrder = async (id, orderData) => {
@@ -711,7 +735,7 @@ export const updateOrder = async (id, orderData) => {
       customer_name = $1, customer_phone = $2, order_type = $3, 
       status = $4, total_amount = $5, notes = $6, 
       delivery_address = $7, updated_at = NOW()
-     WHERE id = $8 RETURNING *`,
+    WHERE id = $8 RETURNING *`,
     [
       customer_name,
       customer_phone,
@@ -723,7 +747,13 @@ export const updateOrder = async (id, orderData) => {
       id,
     ],
   );
-  return result.rows[0];
+  if(result.rows[0]) {
+    return {
+      ...result.rows[0],
+      total_amount: Number(result.rows[0].total_amount)
+    };
+  }
+  return null;
 };
 
 export const deleteOrder = async (id) => {
