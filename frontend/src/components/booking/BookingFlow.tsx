@@ -154,36 +154,48 @@ const BookingFlow: React.FC<BookingFlowProps> = ({
         const tables = tablesRes.tables || [];
         const availability = availabilityRes.availability || [];
 
-        const available = availability.filter(
-          (slot: TableAvailability) =>
-            slot.status === "available" &&
-            slotMatchesTime(slot.start_time, slot.end_time, selectedTime),
-        );
+        // Combine table data with availability data
+        const combined = availability
+          .filter(
+            (slot) =>
+              slot.status === "available" &&
+              slotMatchesTime(slot.start_time, slot.end_time, selectedTime),
+          )
+          .map((slot) => {
+            const matchingTable = tables.find(
+              (table) => table.id === slot.table_id,
+            );
+            return {
+              ...slot,
+              table_number: matchingTable?.table_number || "T1",
+              capacity: matchingTable?.capacity || 4,
+              position_x: matchingTable?.position_x || 0,
+              position_y: matchingTable?.position_y || 0,
+              location_description: matchingTable?.location_description,
+            } as TableAvailability;
+          });
 
-        if (available.length > 0) {
-          setAvailableTables(available);
+        if (combined.length > 0) {
+          setAvailableTables(combined);
           setUseDemoData(false);
         } else if (tables.length > 0) {
-          const fallback = tables.map(
-            (table: Record<string, unknown>, index: number) => ({
-              id: -(index + 1),
-              table_id: table.id as number,
-              date: selectedDate,
-              start_time: selectedTime,
-              end_time: selectedTime,
-              status: "available" as const,
-              table_number: table.table_number as string,
-              capacity: table.capacity as number,
-              location_description: table.location_description as string,
-              position_x: (table.position_x as number) ?? 12 + (index % 3) * 26,
-              position_y:
-                (table.position_y as number) ?? 18 + Math.floor(index / 3) * 34,
-            }),
-          );
+          const fallback = tables.map((table, index) => ({
+            id: -(index + 1),
+            table_id: table.id,
+            date: selectedDate,
+            start_time: selectedTime,
+            end_time: selectedTime,
+            status: "available" as const,
+            table_number: table.table_number,
+            capacity: table.capacity,
+            location_description: table.location_description,
+            position_x: table.position_x ?? 12 + (index % 3) * 26,
+            position_y: table.position_y ?? 18 + Math.floor(index / 3) * 34,
+          }));
           setAvailableTables(fallback);
           setUseDemoData(true);
         } else {
-          const fallback = DEMO_TABLES.map((table, index) => ({
+          const fallback = DEMO_TABLES.map((table) => ({
             ...table,
             table_id: table.id,
             date: selectedDate,

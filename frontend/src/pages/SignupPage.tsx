@@ -146,7 +146,7 @@ const SignupPage: React.FC = () => {
               city,
               operatingHours,
             }
-          : null;
+          : undefined;
 
       const result = await signUp(
         email,
