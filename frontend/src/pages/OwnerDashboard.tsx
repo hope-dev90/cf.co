@@ -547,9 +547,9 @@ const OwnerDashboard: React.FC = () => {
     <div className="flex min-h-screen bg-surface text-on-surface">
       {/* Sidebar */}
       <div
-        className={`fixed left-0 top-0 h-full bg-[#1a1a2e] text-white transition-all duration-300 z-40 ${
+        className={`sticky top-0 self-start h-screen bg-[#1a1a2e] text-white transition-all duration-300 z-40 flex-shrink-0 ${
           sidebarOpen ? "w-80" : "w-0"
-        } overflow-hidden md:relative md:w-80`}
+        } overflow-hidden`}
       >
         <div className="flex flex-col h-full p-6">
           <div className="flex items-center gap-4 mb-8">
