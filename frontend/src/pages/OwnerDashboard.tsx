@@ -715,7 +715,7 @@ const OwnerDashboard: React.FC = () => {
                     <span
                       key={i}
                       className="material-symbols-outlined text-base"
-                      style={{ fontVariationSettings: "'FILL' 1;" }}
+                      style={{ fontVariationSettings: "'FILL' 1" }}
                     >
                       star
                     </span>
