@@ -416,14 +416,13 @@ export const deleteMenuItem = async (id) => {
 };
 
 export const addWaiter = async (waiterData) => {
-  const { restaurant_id, user_id, first_name, last_name, phone, email } =
-    waiterData;
+  const { restaurant_id, user_id, first_name, last_name, phone, email, staff_role, task, photo_url, status } = waiterData;
 
   const result = await pool.query(
     `INSERT INTO waiters (
-      restaurant_id, user_id, first_name, last_name, phone, email
-    ) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-    [restaurant_id, user_id, first_name, last_name, phone, email],
+      restaurant_id, user_id, first_name, last_name, phone, email, staff_role, task, photo_url, status
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+    [restaurant_id, user_id, first_name, last_name, phone, email, staff_role || 'waiter', task || null, photo_url || null, status || 'active'],
   );
   return result.rows[0];
 };
@@ -442,13 +441,15 @@ export const getWaiterById = async (id) => {
 };
 
 export const updateWaiter = async (id, waiterData) => {
-  const { first_name, last_name, phone, email } = waiterData;
+  const { first_name, last_name, phone, email, staff_role, task, photo_url, status } = waiterData;
 
   const result = await pool.query(
     `UPDATE waiters SET 
-      first_name = $1, last_name = $2, phone = $3, email = $4, updated_at = NOW()
-     WHERE id = $5 RETURNING *`,
-    [first_name, last_name, phone, email, id],
+      first_name = $1, last_name = $2, phone = $3, email = $4,
+      staff_role = $5, task = $6, photo_url = $7, status = $8,
+      updated_at = NOW()
+     WHERE id = $9 RETURNING *`,
+    [first_name, last_name, phone, email, staff_role || 'waiter', task || null, photo_url || null, status || 'active', id],
   );
   return result.rows[0];
 };

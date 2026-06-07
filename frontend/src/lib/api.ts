@@ -14,6 +14,10 @@ interface ApiWaiter {
   phone?: string;
   email?: string;
   restaurant_id: number;
+  staff_role?: "waiter" | "manager" | "security" | "chef" | "cashier";
+  task?: string;
+  photo_url?: string;
+  status?: "active" | "inactive" | "on_leave";
   created_at: string;
   updated_at: string;
 }

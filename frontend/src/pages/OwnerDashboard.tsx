@@ -213,6 +213,10 @@ const OwnerDashboard: React.FC = () => {
     last_name: "",
     phone: "",
     email: "",
+    staff_role: "waiter",
+    task: "",
+    photo_url: "",
+    status: "active",
   });
   const [menuItemForm, setMenuItemForm] = useState({
     name: "",
@@ -466,6 +470,10 @@ const OwnerDashboard: React.FC = () => {
       last_name: "",
       phone: "",
       email: "",
+      staff_role: "waiter",
+      task: "",
+      photo_url: "",
+      status: "active",
     });
     setEditingWaiter(null);
   };
