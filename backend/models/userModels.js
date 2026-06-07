@@ -54,11 +54,19 @@ export const getUserByRole = async (role) => {
 };
 export const getAllUsers = async () => {
     const result = await pool.query(
-        `SELECT id, name, email, role, is_verified
+        `SELECT id, name, email, role, is_verified, created_at
          FROM users 
-         ORDER BY name ASC`
+         ORDER BY created_at DESC`
     );
     return result.rows;
+};
+
+export const deleteUserById = async (id) => {
+    const result = await pool.query(
+        `DELETE FROM users WHERE id = $1 RETURNING id`,
+        [id]
+    );
+    return result.rows[0];
 };
 export const saveOtp = async (email, otp, expiresAt) => {
     await pool.query(

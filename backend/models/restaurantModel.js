@@ -851,3 +851,43 @@ export const getOrdersByStatus = async (restaurant_id) => {
   );
   return result.rows;
 };
+
+// ------------------------------
+// ADMIN
+// ------------------------------
+
+export const getAdminStats = async () => {
+  const result = await pool.query(`
+    SELECT
+      (SELECT COUNT(*) FROM users) AS total_users,
+      (SELECT COUNT(*) FROM restaurants) AS total_restaurants,
+      (SELECT COUNT(*) FROM restaurant_orders) AS total_orders,
+      (SELECT COALESCE(SUM(total_amount), 0) FROM restaurant_orders WHERE status NOT IN ('cancelled')) AS total_revenue
+  `);
+  return {
+    total_users: Number(result.rows[0].total_users),
+    total_restaurants: Number(result.rows[0].total_restaurants),
+    total_orders: Number(result.rows[0].total_orders),
+    total_revenue: Number(result.rows[0].total_revenue),
+  };
+};
+
+export const getAllOrders = async () => {
+  const result = await pool.query(`
+    SELECT ro.*, r.name AS restaurant_name, u.name AS user_name, u.email AS user_email
+    FROM restaurant_orders ro
+    LEFT JOIN restaurants r ON ro.restaurant_id = r.id
+    LEFT JOIN users u ON ro.user_id = u.id
+    ORDER BY ro.created_at DESC
+    LIMIT 200
+  `);
+  return result.rows.map((o) => ({ ...o, total_amount: Number(o.total_amount) }));
+};
+
+export const updateRestaurantStatus = async (id, is_active) => {
+  const result = await pool.query(
+    `UPDATE restaurants SET is_active = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
+    [is_active, id],
+  );
+  return result.rows[0];
+};
