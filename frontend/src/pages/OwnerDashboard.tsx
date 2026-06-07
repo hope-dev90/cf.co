@@ -30,6 +30,124 @@ interface Order {
   createdAt: string;
 }
 
+const SettingsPanel: React.FC<{
+  restaurant: ApiRestaurant | null;
+  onSaved: (r: ApiRestaurant) => void;
+}> = ({ restaurant, onSaved }) => {
+  const [form, setForm] = React.useState({
+    name: restaurant?.name || "",
+    description: restaurant?.description || "",
+    cuisine_type: restaurant?.cuisine_type || "",
+    phone: restaurant?.phone || "",
+    email: restaurant?.email || "",
+    website: restaurant?.website || "",
+  });
+  const [saving, setSaving] = React.useState(false);
+  const [saved, setSaved] = React.useState(false);
+  const [error, setError] = React.useState("");
+
+  React.useEffect(() => {
+    if (restaurant) {
+      setForm({
+        name: restaurant.name || "",
+        description: restaurant.description || "",
+        cuisine_type: restaurant.cuisine_type || "",
+        phone: restaurant.phone || "",
+        email: restaurant.email || "",
+        website: restaurant.website || "",
+      });
+    }
+  }, [restaurant]);
+
+  const set = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!restaurant) return;
+    setSaving(true); setError(""); setSaved(false);
+    try {
+      const data = await restaurantApi.update(restaurant.id, form);
+      if (data.restaurant) {
+        onSaved(data.restaurant);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      }
+    } catch {
+      setError("Failed to save changes. Try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const inputCls = "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary";
+  const labelCls = "block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1";
+
+  return (
+    <form onSubmit={handleSave} className="space-y-6 max-w-2xl">
+      {saved && (
+        <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg px-4 py-3">
+          ✓ Changes saved successfully.
+        </div>
+      )}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
+          {error}
+        </div>
+      )}
+
+      <div className="bg-white rounded-xl p-6 custom-shadow">
+        <h3 className="font-bold text-on-surface mb-5 text-sm uppercase tracking-wide">Restaurant Info</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className={labelCls}>Restaurant Name</label>
+            <input className={inputCls} value={form.name} onChange={(e) => set("name", e.target.value)} required placeholder="My Restaurant" />
+          </div>
+          <div>
+            <label className={labelCls}>Cuisine Type</label>
+            <input className={inputCls} value={form.cuisine_type} onChange={(e) => set("cuisine_type", e.target.value)} placeholder="Italian, Japanese…" />
+          </div>
+          <div className="md:col-span-2">
+            <label className={labelCls}>Description</label>
+            <textarea
+              className={`${inputCls} resize-none`}
+              rows={3}
+              value={form.description}
+              onChange={(e) => set("description", e.target.value)}
+              placeholder="Tell customers about your restaurant…"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl p-6 custom-shadow">
+        <h3 className="font-bold text-on-surface mb-5 text-sm uppercase tracking-wide">Contact Details</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className={labelCls}>Phone</label>
+            <input className={inputCls} value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="+1 555 000 0000" />
+          </div>
+          <div>
+            <label className={labelCls}>Email</label>
+            <input type="email" className={inputCls} value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="info@restaurant.com" />
+          </div>
+          <div className="md:col-span-2">
+            <label className={labelCls}>Website</label>
+            <input className={inputCls} value={form.website} onChange={(e) => set("website", e.target.value)} placeholder="https://myrestaurant.com" />
+          </div>
+        </div>
+      </div>
+
+      <button
+        type="submit"
+        disabled={saving}
+        className="px-8 py-3 bg-primary-container text-on-primary rounded-xl font-bold text-sm hover:opacity-90 disabled:opacity-50 transition-opacity"
+      >
+        {saving ? "Saving…" : "Save Changes"}
+      </button>
+    </form>
+  );
+};
+
 const OwnerDashboard: React.FC = () => {
   const { logout, profile: authProfile } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -65,6 +183,21 @@ const OwnerDashboard: React.FC = () => {
   const [editingMenuItem, setEditingMenuItem] = useState<ApiMenuItem | null>(
     null,
   );
+
+  const [selectedOrder, setSelectedOrder] = useState<ApiOrder | null>(null);
+  const [loadingOrderDetail, setLoadingOrderDetail] = useState(false);
+
+  const handleViewOrder = async (id: string) => {
+    setLoadingOrderDetail(true);
+    try {
+      const data = await orderApi.getById(id);
+      setSelectedOrder(data.order || null);
+    } catch (e) {
+      console.error("Error fetching order detail:", e);
+    } finally {
+      setLoadingOrderDetail(false);
+    }
+  };
 
   // Form states
   const [tableForm, setTableForm] = useState({
@@ -938,6 +1071,8 @@ const OwnerDashboard: React.FC = () => {
                     <tr className="bg-surface-container-lowest text-on-surface-variant font-label-bold text-xs border-b border-surface-variant">
                       <th className="px-6 py-3.5">Order ID</th>
                       <th className="px-6 py-3.5">Customer</th>
+                      <th className="px-6 py-3.5">Phone</th>
+                      <th className="px-6 py-3.5">Type</th>
                       <th className="px-6 py-3.5">Amount</th>
                       <th className="px-6 py-3.5">Status</th>
                       <th className="px-6 py-3.5">Time</th>
@@ -946,56 +1081,138 @@ const OwnerDashboard: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-surface-variant font-body-md text-sm">
                     {orders.map((order) => (
-                      <tr
-                        key={order.id}
-                        className="hover:bg-surface-container-lowest transition-colors"
-                      >
-                        <td className="px-6 py-4 text-on-surface font-medium">
-                          {order.orderNumber}
-                        </td>
+                      <tr key={order.id} className="hover:bg-surface-container-lowest transition-colors">
+                        <td className="px-6 py-4 text-on-surface font-medium">{order.orderNumber}</td>
                         <td className="px-6 py-4">{order.customerName}</td>
+                        <td className="px-6 py-4 text-on-surface-variant text-xs">
+                          {(order as any).customer_phone || "—"}
+                        </td>
+                        <td className="px-6 py-4 text-xs capitalize">
+                          {(order as any).order_type || "dine-in"}
+                        </td>
                         <td className="px-6 py-4 text-primary-container font-semibold">
                           {formatNumber(order.totalAmount)}
                         </td>
                         <td className="px-6 py-4">
-                          <span
-                            className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${getStatusColor(
-                              order.status,
-                            )}`}
-                          >
+                          <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${getStatusColor(order.status)}`}>
                             {getStatusLabel(order.status)}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-on-surface-variant">
-                          {formatTime(order.createdAt)}
-                        </td>
+                        <td className="px-6 py-4 text-on-surface-variant">{formatTime(order.createdAt)}</td>
                         <td className="px-6 py-4">
-                          <select
-                            value={order.status}
-                            onChange={(e) =>
-                              handleUpdateOrderStatus(order.id, e.target.value)
-                            }
-                            className="text-xs px-2 py-1 rounded border border-gray-300"
-                          >
-                            <option value="pending">Pending</option>
-                            <option value="preparing">Preparing</option>
-                            <option value="ready">Ready</option>
-                            <option value="served">Served</option>
-                            <option value="delivered">Delivered</option>
-                            <option value="completed">Completed</option>
-                            <option value="cancelled">Cancelled</option>
-                          </select>
+                          <div className="flex items-center gap-2">
+                            {/* View details */}
+                            <button
+                              onClick={() => handleViewOrder(order.id)}
+                              className="text-xs px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold"
+                            >
+                              Details
+                            </button>
+                            {/* Approve — only for pending */}
+                            {order.status === "pending" && (
+                              <button
+                                onClick={() => handleUpdateOrderStatus(order.id, "preparing")}
+                                className="text-xs px-2 py-1 rounded bg-green-100 hover:bg-green-200 text-green-700 font-semibold"
+                              >
+                                Approve
+                              </button>
+                            )}
+                            {/* Reject — for pending or preparing */}
+                            {(order.status === "pending" || order.status === "preparing") && (
+                              <button
+                                onClick={() => handleUpdateOrderStatus(order.id, "cancelled")}
+                                className="text-xs px-2 py-1 rounded bg-red-100 hover:bg-red-200 text-red-700 font-semibold"
+                              >
+                                Reject
+                              </button>
+                            )}
+                            {/* Progress dropdown for non-terminal statuses */}
+                            {!["pending", "cancelled", "completed"].includes(order.status) && (
+                              <select
+                                value={order.status}
+                                onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value)}
+                                className="text-xs px-2 py-1 rounded border border-gray-300"
+                              >
+                                <option value="preparing">Preparing</option>
+                                <option value="ready">Ready</option>
+                                <option value="served">Served</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                              </select>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               ) : (
-                <p className="text-on-surface-variant text-sm">
-                  No orders yet.
-                </p>
+                <p className="text-on-surface-variant text-sm">No orders yet.</p>
               )}
             </div>
+
+            {/* Order Detail Modal */}
+            {selectedOrder && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setSelectedOrder(null)}>
+                <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-8 relative" onClick={(e) => e.stopPropagation()}>
+                  <button onClick={() => setSelectedOrder(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700">
+                    <span className="material-symbols-outlined">close</span>
+                  </button>
+                  <h3 className="text-lg font-bold text-on-surface mb-1">
+                    Order #{String(selectedOrder.id).padStart(3, "0")}
+                  </h3>
+                  <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${getStatusColor(selectedOrder.status)}`}>
+                    {getStatusLabel(selectedOrder.status)}
+                  </span>
+
+                  <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
+                    <div><p className="text-xs text-gray-500">Customer</p><p className="font-semibold">{selectedOrder.customer_name}</p></div>
+                    <div><p className="text-xs text-gray-500">Phone</p><p className="font-semibold">{selectedOrder.customer_phone}</p></div>
+                    <div><p className="text-xs text-gray-500">Order Type</p><p className="font-semibold capitalize">{selectedOrder.order_type}</p></div>
+                    <div><p className="text-xs text-gray-500">Payment</p><p className="font-semibold">{selectedOrder.payment_method || "—"}</p></div>
+                    <div><p className="text-xs text-gray-500">Total</p><p className="font-bold text-primary">${Number(selectedOrder.total_amount).toFixed(2)}</p></div>
+                    <div><p className="text-xs text-gray-500">Time</p><p className="font-semibold">{formatTime(selectedOrder.created_at)}</p></div>
+                    {selectedOrder.delivery_address && (
+                      <div className="col-span-2"><p className="text-xs text-gray-500">Delivery Address</p><p className="font-semibold">{selectedOrder.delivery_address}</p></div>
+                    )}
+                    {selectedOrder.notes && (
+                      <div className="col-span-2"><p className="text-xs text-gray-500">Notes</p><p className="font-semibold">{selectedOrder.notes}</p></div>
+                    )}
+                  </div>
+
+                  {selectedOrder.items && selectedOrder.items.length > 0 && (
+                    <div className="mt-5">
+                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Items</p>
+                      <div className="border rounded-lg overflow-hidden">
+                        {selectedOrder.items.map((item) => (
+                          <div key={item.id} className="flex justify-between items-center px-4 py-2.5 border-b last:border-b-0 text-sm">
+                            <span>{item.quantity}× {item.menu_item_name}</span>
+                            <span className="font-semibold">${(item.unit_price * item.quantity).toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedOrder.status === "pending" && (
+                    <div className="mt-6 flex gap-3">
+                      <button
+                        onClick={() => { handleUpdateOrderStatus(String(selectedOrder.id), "preparing"); setSelectedOrder(null); }}
+                        className="flex-1 py-2.5 rounded-xl bg-green-500 hover:bg-green-600 text-white font-bold text-sm"
+                      >
+                        Approve Order
+                      </button>
+                      <button
+                        onClick={() => { handleUpdateOrderStatus(String(selectedOrder.id), "cancelled"); setSelectedOrder(null); }}
+                        className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-sm"
+                      >
+                        Reject Order
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </section>
         )}
 
@@ -1252,20 +1469,18 @@ const OwnerDashboard: React.FC = () => {
         )}
 
         {activeTab === "settings" && (
-          <section className="px-8 mt-8 max-w-screen-2xl mx-auto">
+          <section className="px-8 mt-8 max-w-screen-2xl mx-auto pb-16">
             <div className="mb-8">
-              <h2 className="font-display-lg text-2xl text-on-surface tracking-tight">
-                Settings
-              </h2>
+              <h2 className="font-display-lg text-2xl text-on-surface tracking-tight">Settings</h2>
               <p className="font-body-lg text-base text-on-surface-variant mt-2">
                 Manage your restaurant information and preferences
               </p>
             </div>
-            <div className="bg-white rounded-xl p-6 custom-shadow">
-              <p className="text-on-surface-variant text-sm">
-                Settings interface will go here
-              </p>
-            </div>
+
+            <SettingsPanel
+              restaurant={restaurant}
+              onSaved={(updated) => setRestaurant(updated)}
+            />
           </section>
         )}
 
