@@ -7,6 +7,16 @@ interface ApiUser {
   role: Role;
 }
 
+interface ApiWaiter {
+  id: number;
+  name: string;
+  phone?: string;
+  restaurant_id: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 interface ApiResponse<_T = unknown> {
   success: boolean;
   message?: string;
@@ -23,6 +33,8 @@ interface ApiResponse<_T = unknown> {
   orders?: ApiOrder[];
   order?: ApiOrder;
   users?: ApiUser[];
+  waiters?: ApiWaiter[];
+  waiter?: ApiWaiter;
 }
 
 interface ApiRestaurant {
@@ -228,6 +240,18 @@ export const restaurantApi = {
   
   // Tables
   getTables: (restaurantId: string | number) => apiClient<{ success: boolean; tables: ApiTable[] }>(`/restaurants/${restaurantId}/tables`, { method: 'GET' }),
+  addTable: (restaurantId: string | number, data: Record<string, unknown>) =>
+    apiClient<{ success: boolean; table: ApiTable }>(`/restaurants/${restaurantId}/tables`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateTable: (id: string | number, data: Record<string, unknown>) =>
+    apiClient<{ success: boolean; table: ApiTable }>(`/restaurants/tables/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deleteTable: (id: string | number) =>
+    apiClient<{ success: boolean }>(`/restaurants/tables/${id}`, { method: 'DELETE' }),
   getTableAvailability: (restaurantId: string | number, date: string) =>
     apiClient<{ success: boolean; availability: ApiTableAvailability[] }>(`/restaurants/${restaurantId}/tables/availability/${date}`, { method: 'GET' }),
   reserveTable: (availabilityId: number, data: Record<string, unknown>) =>
@@ -235,6 +259,21 @@ export const restaurantApi = {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),
+
+  // Waiters
+  getWaiters: (restaurantId: string | number) => apiClient<{ success: boolean; waiters: ApiWaiter[] }>(`/restaurants/${restaurantId}/waiters`, { method: 'GET' }),
+  addWaiter: (restaurantId: string | number, data: Record<string, unknown>) =>
+    apiClient<{ success: boolean; waiter: ApiWaiter }>(`/restaurants/${restaurantId}/waiters`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateWaiter: (id: string | number, data: Record<string, unknown>) =>
+    apiClient<{ success: boolean; waiter: ApiWaiter }>(`/restaurants/waiters/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deleteWaiter: (id: string | number) =>
+    apiClient<{ success: boolean }>(`/restaurants/waiters/${id}`, { method: 'DELETE' }),
 };
 
 // Orders API
@@ -255,4 +294,4 @@ export const orderApi = {
     }),
 };
 
-export type { ApiRestaurant, ApiMenuItem, ApiTable, ApiTableAvailability, ApiOrder, ApiOrderItem, ApiUser };
+export type { ApiRestaurant, ApiMenuItem, ApiTable, ApiTableAvailability, ApiOrder, ApiOrderItem, ApiUser, ApiWaiter };
