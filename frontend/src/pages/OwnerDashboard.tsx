@@ -9,6 +9,10 @@ import {
   ApiMenuItem,
   ApiTable,
   ApiWaiter,
+  ApiAnalytics,
+  ApiDailySale,
+  ApiTopMenuItem,
+  ApiOrderStatusCount,
 } from "../lib/api";
 
 interface Order {
@@ -51,10 +55,18 @@ const OwnerDashboard: React.FC = () => {
   const [menuItems, setMenuItems] = useState<ApiMenuItem[]>([]);
   const [tables, setTables] = useState<ApiTable[]>([]);
   const [waiters, setWaiters] = useState<ApiWaiter[]>([]);
+  const [analytics, setAnalytics] = useState<ApiAnalytics | null>(null);
+  const [dailySales, setDailySales] = useState<ApiDailySale[]>([]);
+  const [topItems, setTopItems] = useState<ApiTopMenuItem[]>([]);
+  const [statusCounts, setStatusCounts] = useState<ApiOrderStatusCount[]>([]);
   const [showAddTableModal, setShowAddTableModal] = useState(false);
   const [showAddWaiterModal, setShowAddWaiterModal] = useState(false);
+  const [showAddMenuItemModal, setShowAddMenuItemModal] = useState(false);
   const [editingTable, setEditingTable] = useState<ApiTable | null>(null);
   const [editingWaiter, setEditingWaiter] = useState<ApiWaiter | null>(null);
+  const [editingMenuItem, setEditingMenuItem] = useState<ApiMenuItem | null>(
+    null,
+  );
 
   // Form states
   const [tableForm, setTableForm] = useState({
@@ -70,6 +82,14 @@ const OwnerDashboard: React.FC = () => {
     last_name: "",
     phone: "",
     email: "",
+  });
+  const [menuItemForm, setMenuItemForm] = useState({
+    name: "",
+    description: "",
+    price: 0,
+    category: "",
+    is_available: true,
+    image_url: "",
   });
 
   const formatNumber = (num: number): string => {
@@ -115,13 +135,23 @@ const OwnerDashboard: React.FC = () => {
           const rest = restaurantData.restaurants[0];
           setRestaurant(rest);
 
-          const [ordersData, menuData, tablesData, waitersData] =
-            await Promise.all([
-              orderApi.getByRestaurant(rest.id),
-              restaurantApi.getMenu(rest.id),
-              restaurantApi.getTables(rest.id),
-              restaurantApi.getWaiters(rest.id),
-            ]);
+          const [
+            ordersData,
+            menuData,
+            tablesData,
+            waitersData,
+            analyticsData,
+            topItemsData,
+            statusCountsData,
+          ] = await Promise.all([
+            orderApi.getByRestaurant(rest.id),
+            restaurantApi.getMenu(rest.id),
+            restaurantApi.getTables(rest.id),
+            restaurantApi.getWaiters(rest.id),
+            restaurantApi.getAnalytics(rest.id),
+            restaurantApi.getTopMenuItems(rest.id, 5),
+            restaurantApi.getOrdersByStatus(rest.id),
+          ]);
 
           const formattedOrders: Order[] = (ordersData.orders || []).map(
             (order: ApiOrder) => ({
@@ -138,6 +168,9 @@ const OwnerDashboard: React.FC = () => {
           setMenuItems(menuData.menuItems || []);
           setTables(tablesData.tables || []);
           setWaiters(waitersData.waiters || []);
+          setAnalytics(analyticsData.analytics || null);
+          setTopItems(topItemsData.topItems || []);
+          setStatusCounts(statusCountsData.statusCounts || []);
 
           const today = new Date().toDateString();
           const todayOrderList = formattedOrders.filter(
@@ -160,10 +193,7 @@ const OwnerDashboard: React.FC = () => {
     fetchData();
   }, []);
 
-  const handleUpdateOrderStatus = async (
-    id: string,
-    newStatus: string,
-  ): Promise<void> => {
+  const handleUpdateOrderStatus = async (id: string, newStatus: string) => {
     try {
       await orderApi.updateStatus(id, newStatus);
       setOrders((prev) =>
@@ -171,6 +201,16 @@ const OwnerDashboard: React.FC = () => {
           order.id === id ? { ...order, status: newStatus as any } : order,
         ),
       );
+
+      // Refresh analytics and status counts
+      if (restaurant) {
+        const [analyticsData, statusCountsData] = await Promise.all([
+          restaurantApi.getAnalytics(restaurant.id),
+          restaurantApi.getOrdersByStatus(restaurant.id),
+        ]);
+        setAnalytics(analyticsData.analytics || null);
+        setStatusCounts(statusCountsData.statusCounts || []);
+      }
     } catch (error) {
       console.error("Error updating order status:", error);
     }
@@ -293,6 +333,71 @@ const OwnerDashboard: React.FC = () => {
       email: "",
     });
     setEditingWaiter(null);
+  };
+
+  const handleAddOrUpdateMenuItem = async (): Promise<void> => {
+    if (!restaurant) return;
+    try {
+      if (editingMenuItem) {
+        const data = await restaurantApi.updateMenuItem(
+          editingMenuItem.id,
+          menuItemForm,
+        );
+        if (data.menuItem) {
+          setMenuItems((prev) =>
+            prev.map((item) =>
+              item.id === editingMenuItem.id ? data.menuItem! : item,
+            ),
+          );
+        }
+      } else {
+        const data = await restaurantApi.addMenuItem(
+          restaurant.id,
+          menuItemForm,
+        );
+        if (data.menuItem) {
+          setMenuItems((prev) => [...prev, data.menuItem]);
+        }
+      }
+      setShowAddMenuItemModal(false);
+      resetMenuItemForm();
+    } catch (error) {
+      console.error("Error saving menu item:", error);
+    }
+  };
+
+  const handleDeleteMenuItem = async (menuItemId: number): Promise<void> => {
+    try {
+      await restaurantApi.deleteMenuItem(menuItemId);
+      setMenuItems((prev) => prev.filter((item) => item.id !== menuItemId));
+    } catch (error) {
+      console.error("Error deleting menu item:", error);
+    }
+  };
+
+  const handleEditMenuItem = (menuItem: ApiMenuItem): void => {
+    setEditingMenuItem(menuItem);
+    setMenuItemForm({
+      name: menuItem.name,
+      description: menuItem.description || "",
+      price: Number(menuItem.price),
+      category: menuItem.category || "",
+      is_available: menuItem.is_available,
+      image_url: menuItem.image_url || "",
+    });
+    setShowAddMenuItemModal(true);
+  };
+
+  const resetMenuItemForm = (): void => {
+    setMenuItemForm({
+      name: "",
+      description: "",
+      price: 0,
+      category: "",
+      is_available: true,
+      image_url: "",
+    });
+    setEditingMenuItem(null);
   };
 
   if (loading) {
@@ -728,13 +833,25 @@ const OwnerDashboard: React.FC = () => {
 
         {activeTab === "menu" && (
           <section className="px-8 mt-8 max-w-screen-2xl mx-auto">
-            <div className="mb-8">
-              <h2 className="font-display-lg text-2xl text-on-surface tracking-tight">
-                Menu Management
-              </h2>
-              <p className="font-body-lg text-base text-on-surface-variant mt-2">
-                Create and manage your restaurant menu items
-              </p>
+            <div className="mb-8 flex justify-between items-center">
+              <div>
+                <h2 className="font-display-lg text-2xl text-on-surface tracking-tight">
+                  Menu Management
+                </h2>
+                <p className="font-body-lg text-base text-on-surface-variant mt-2">
+                  Create and manage your restaurant menu items
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  resetMenuItemForm();
+                  setShowAddMenuItemModal(true);
+                }}
+                className="bg-primary-container text-on-primary hover:opacity-90 active:scale-95 px-6 py-3 rounded-xl font-headline-sm text-sm transition-all flex items-center shadow-md"
+              >
+                <span className="material-symbols-outlined mr-2">add</span>
+                Add Menu Item
+              </button>
             </div>
             <div className="bg-white rounded-xl p-6 custom-shadow">
               {menuItems.length > 0 ? (
@@ -744,18 +861,52 @@ const OwnerDashboard: React.FC = () => {
                       key={item.id}
                       className="border border-gray-200 rounded-lg p-4"
                     >
-                      <div className="flex justify-between">
-                        <h3 className="font-semibold">{item.name}</h3>
-                        <span className="text-primary font-bold">
-                          ${Number(item.price).toFixed(2)}
-                        </span>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-semibold">{item.name}</h3>
+                          <span className="text-primary font-bold">
+                            ${Number(item.price).toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleEditMenuItem(item)}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            <span className="material-symbols-outlined text-lg">
+                              edit
+                            </span>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteMenuItem(item.id)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            <span className="material-symbols-outlined text-lg">
+                              delete
+                            </span>
+                          </button>
+                        </div>
                       </div>
+                      {item.image_url && (
+                        <img
+                          src={item.image_url}
+                          alt={item.name}
+                          className="w-full h-40 object-cover rounded-lg my-3"
+                        />
+                      )}
                       <p className="text-sm text-gray-600 mt-1">
                         {item.description}
                       </p>
                       <p className="text-xs text-gray-500 mt-2">
                         Category: {item.category || "Uncategorized"}
                       </p>
+                      <span
+                        className={`text-xs mt-1 ${
+                          item.is_available ? "text-green-600" : "text-red-600"
+                        }`}
+                      >
+                        {item.is_available ? "Available" : "Not Available"}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -1011,10 +1162,89 @@ const OwnerDashboard: React.FC = () => {
                 Monitor your restaurant performance
               </p>
             </div>
-            <div className="bg-white rounded-xl p-6 custom-shadow">
-              <p className="text-on-surface-variant text-sm">
-                Analytics interface will go here
-              </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              {analytics && (
+                <>
+                  <div className="bg-white p-6 rounded-xl custom-shadow">
+                    <h3 className="text-lg font-bold mb-4">Summary</h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Total Orders</span>
+                        <span className="font-bold text-xl">
+                          {analytics.total_orders}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Total Revenue</span>
+                        <span className="font-bold text-xl">
+                          {formatNumber(Number(analytics.total_revenue))}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Avg. Order Value</span>
+                        <span className="font-bold text-xl">
+                          {formatNumber(Number(analytics.avg_order_value))}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-6 rounded-xl custom-shadow">
+                    <h3 className="text-lg font-bold mb-4">Orders by Status</h3>
+                    <div className="space-y-3">
+                      {statusCounts.length > 0 ? (
+                        statusCounts.map((statusCount) => (
+                          <div
+                            key={statusCount.status}
+                            className="flex justify-between items-center"
+                          >
+                            <span className="text-gray-600">
+                              {getStatusLabel(statusCount.status)}
+                            </span>
+                            <span className="font-bold">
+                              {statusCount.count}
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-gray-500 text-sm">No data</p>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="bg-white p-6 rounded-xl custom-shadow mb-8">
+              <h3 className="text-lg font-bold mb-4">Top Menu Items</h3>
+              {topItems.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {topItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="border border-gray-200 rounded-lg p-4"
+                    >
+                      <div className="flex items-center gap-3">
+                        {item.image_url && (
+                          <img
+                            src={item.image_url}
+                            alt={item.name}
+                            className="w-12 h-12 rounded-lg object-cover"
+                          />
+                        )}
+                        <div>
+                          <h4 className="font-semibold">{item.name}</h4>
+                          <p className="text-sm text-gray-600">
+                            Sold: {item.total_sold}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm">No items sold yet</p>
+              )}
             </div>
           </section>
         )}
@@ -1243,6 +1473,148 @@ const OwnerDashboard: React.FC = () => {
                   className="flex-1 px-4 py-2 bg-primary-container text-on-primary rounded-lg hover:opacity-90"
                 >
                   {editingWaiter ? "Update" : "Add"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showAddMenuItemModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-on-surface">
+                  {editingMenuItem ? "Edit Menu Item" : "Add New Menu Item"}
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowAddMenuItemModal(false);
+                    resetMenuItemForm();
+                  }}
+                >
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-on-surface mb-1">
+                    Name
+                  </label>
+                  <input
+                    type="text"
+                    value={menuItemForm.name}
+                    onChange={(e) =>
+                      setMenuItemForm({ ...menuItemForm, name: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="Pizza Margherita"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-on-surface mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    value={menuItemForm.description}
+                    onChange={(e) =>
+                      setMenuItemForm({
+                        ...menuItemForm,
+                        description: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    rows={3}
+                    placeholder="Delicious pizza with fresh mozzarella"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-on-surface mb-1">
+                    Price
+                  </label>
+                  <input
+                    type="number"
+                    value={menuItemForm.price}
+                    onChange={(e) =>
+                      setMenuItemForm({
+                        ...menuItemForm,
+                        price: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="15.99"
+                    step="0.01"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-on-surface mb-1">
+                    Category
+                  </label>
+                  <input
+                    type="text"
+                    value={menuItemForm.category}
+                    onChange={(e) =>
+                      setMenuItemForm({
+                        ...menuItemForm,
+                        category: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="Main Course"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-on-surface mb-1">
+                    Image URL
+                  </label>
+                  <input
+                    type="text"
+                    value={menuItemForm.image_url}
+                    onChange={(e) =>
+                      setMenuItemForm({
+                        ...menuItemForm,
+                        image_url: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="https://example.com/image.jpg"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="menu_item_available"
+                    checked={menuItemForm.is_available}
+                    onChange={(e) =>
+                      setMenuItemForm({
+                        ...menuItemForm,
+                        is_available: e.target.checked,
+                      })
+                    }
+                    className="rounded"
+                  />
+                  <label
+                    htmlFor="menu_item_available"
+                    className="text-sm text-on-surface"
+                  >
+                    Available
+                  </label>
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowAddMenuItemModal(false);
+                    resetMenuItemForm();
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddOrUpdateMenuItem}
+                  className="flex-1 px-4 py-2 bg-primary-container text-on-primary rounded-lg hover:opacity-90"
+                >
+                  {editingMenuItem ? "Update" : "Add"}
                 </button>
               </div>
             </div>
