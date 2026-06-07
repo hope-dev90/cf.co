@@ -10,7 +10,6 @@ import {
   ApiTable,
   ApiWaiter,
   ApiAnalytics,
-  ApiDailySale,
   ApiTopMenuItem,
   ApiOrderStatusCount,
 } from "../lib/api";
@@ -56,7 +55,6 @@ const OwnerDashboard: React.FC = () => {
   const [tables, setTables] = useState<ApiTable[]>([]);
   const [waiters, setWaiters] = useState<ApiWaiter[]>([]);
   const [analytics, setAnalytics] = useState<ApiAnalytics | null>(null);
-  const [dailySales, setDailySales] = useState<ApiDailySale[]>([]);
   const [topItems, setTopItems] = useState<ApiTopMenuItem[]>([]);
   const [statusCounts, setStatusCounts] = useState<ApiOrderStatusCount[]>([]);
   const [showAddTableModal, setShowAddTableModal] = useState(false);
