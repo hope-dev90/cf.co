@@ -281,6 +281,161 @@ const UsersTab: React.FC = () => {
   );
 };
 
+// ─── Add Restaurant Modal ─────────────────────────────────────────────────────
+
+interface RestaurantForm {
+  name: string;
+  cuisine_type: string;
+  description: string;
+  phone: string;
+  email: string;
+  website: string;
+  address: string;
+  city: string;
+}
+
+const EMPTY_FORM: RestaurantForm = {
+  name: "", cuisine_type: "", description: "",
+  phone: "", email: "", website: "", address: "", city: "",
+};
+
+const AddRestaurantModal: React.FC<{
+  onClose: () => void;
+  onCreated: (r: AdminRestaurant) => void;
+}> = ({ onClose, onCreated }) => {
+  const [form, setForm] = useState<RestaurantForm>(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const set = (k: keyof RestaurantForm, v: string) =>
+    setForm(p => ({ ...p, [k]: v }));
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name.trim()) { setError("Restaurant name is required."); return; }
+    setSaving(true); setError("");
+    try {
+      const res = await restaurantApi.create({
+        name: form.name,
+        cuisine_type: form.cuisine_type || null,
+        description: form.description || null,
+        phone: form.phone || null,
+        email: form.email || null,
+        website: form.website || null,
+      });
+      if (res.restaurant) {
+        // add location if provided
+        if (form.address || form.city) {
+          try {
+            await restaurantApi.addLocation(res.restaurant.id, {
+              address: form.address || null,
+              city: form.city || null,
+              state: null, postal_code: null, latitude: null, longitude: null,
+            });
+          } catch { /* location is optional */ }
+        }
+        onCreated(res.restaurant as AdminRestaurant);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create restaurant");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const inputCls = "w-full px-4 py-2.5 rounded-xl border border-outline-variant bg-surface text-body-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-container transition-all";
+  const labelCls = "block text-label-bold text-on-surface-variant mb-1.5";
+
+  return (
+    /* Backdrop */
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in"
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="w-full max-w-lg bg-surface rounded-2xl shadow-2xl overflow-hidden animate-slide-up">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
+          <h3 className="text-headline-sm font-bold text-on-surface">Add Restaurant</h3>
+          <button onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-container transition-colors">
+            <span className="material-symbols-outlined text-on-surface-variant text-xl">close</span>
+          </button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto max-h-[70vh]">
+          {error && <ErrorBanner message={error} />}
+
+          {/* Basic info */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-2">
+              <label className={labelCls}>Restaurant Name <span className="text-error">*</span></label>
+              <input type="text" value={form.name} onChange={e => set("name", e.target.value)}
+                placeholder="e.g. The Bistro Hub" className={inputCls} required />
+            </div>
+            <div>
+              <label className={labelCls}>Cuisine Type</label>
+              <input type="text" value={form.cuisine_type} onChange={e => set("cuisine_type", e.target.value)}
+                placeholder="Italian, Japanese…" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Phone</label>
+              <input type="tel" value={form.phone} onChange={e => set("phone", e.target.value)}
+                placeholder="+1 555 000 0000" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Email</label>
+              <input type="email" value={form.email} onChange={e => set("email", e.target.value)}
+                placeholder="info@restaurant.com" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Website</label>
+              <input type="url" value={form.website} onChange={e => set("website", e.target.value)}
+                placeholder="https://…" className={inputCls} />
+            </div>
+            <div className="sm:col-span-2">
+              <label className={labelCls}>Description</label>
+              <textarea value={form.description} onChange={e => set("description", e.target.value)}
+                rows={3} placeholder="Tell customers about this restaurant…"
+                className={`${inputCls} resize-none`} />
+            </div>
+          </div>
+
+          {/* Location */}
+          <div className="pt-2 border-t border-outline-variant">
+            <p className="text-label-bold text-on-surface-variant mb-3">Location (optional)</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className={labelCls}>Address</label>
+                <input type="text" value={form.address} onChange={e => set("address", e.target.value)}
+                  placeholder="123 Main Street" className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>City</label>
+                <input type="text" value={form.city} onChange={e => set("city", e.target.value)}
+                  placeholder="New York" className={inputCls} />
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose}
+              className="flex-1 py-3 rounded-xl border border-outline-variant text-body-sm font-semibold text-on-surface hover:bg-surface-container transition-colors">
+              Cancel
+            </button>
+            <button type="submit" disabled={saving}
+              className="flex-1 btn-primary py-3 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+              {saving
+                ? <><span className="material-symbols-outlined text-base animate-spin">progress_activity</span> Saving…</>
+                : <><span className="material-symbols-outlined text-base">add</span> Add Restaurant</>
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 // ─── Restaurants Tab ──────────────────────────────────────────────────────────
 
 const RestaurantsTab: React.FC = () => {

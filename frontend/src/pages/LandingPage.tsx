@@ -294,7 +294,7 @@ export default function LandingPage() {
             </div>
 
             {/* Hero Image */}
-            <div className="relative h-96 md:h-full rounded-2xl overflow-hidden shadow-2xl">
+            <div className="relative h-64 sm:h-80 md:h-96 rounded-2xl overflow-hidden shadow-2xl">
               <img
                 src="https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=800"
                 alt="Delicious food delivery"
