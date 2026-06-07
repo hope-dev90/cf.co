@@ -16,6 +16,7 @@ interface ApiWaiter {
   restaurant_id: number;
   staff_role?: "waiter" | "manager" | "security" | "chef" | "cashier";
   task?: string;
+  task_done?: boolean;
   photo_url?: string;
   status?: "active" | "inactive" | "on_leave";
   created_at: string;

@@ -441,15 +441,15 @@ export const getWaiterById = async (id) => {
 };
 
 export const updateWaiter = async (id, waiterData) => {
-  const { first_name, last_name, phone, email, staff_role, task, photo_url, status } = waiterData;
+  const { first_name, last_name, phone, email, staff_role, task, task_done, photo_url, status } = waiterData;
 
   const result = await pool.query(
     `UPDATE waiters SET 
       first_name = $1, last_name = $2, phone = $3, email = $4,
-      staff_role = $5, task = $6, photo_url = $7, status = $8,
+      staff_role = $5, task = $6, task_done = $7, photo_url = $8, status = $9,
       updated_at = NOW()
-     WHERE id = $9 RETURNING *`,
-    [first_name, last_name, phone, email, staff_role || 'waiter', task || null, photo_url || null, status || 'active', id],
+     WHERE id = $10 RETURNING *`,
+    [first_name, last_name, phone, email, staff_role || 'waiter', task || null, task_done || false, photo_url || null, status || 'active', id],
   );
   return result.rows[0];
 };

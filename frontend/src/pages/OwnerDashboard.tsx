@@ -30,6 +30,114 @@ interface Order {
   createdAt: string;
 }
 
+const StaffCard: React.FC<{
+  waiter: ApiWaiter;
+  roleColors: Record<string, string>;
+  statusColors: Record<string, string>;
+  onEdit: () => void;
+  onDelete: () => void;
+  onAssignTask: (task: string, done: boolean) => void;
+}> = ({ waiter, roleColors, statusColors, onEdit, onDelete, onAssignTask }) => {
+  const [taskInput, setTaskInput] = React.useState(waiter.task || "");
+  const [taskDone, setTaskDone] = React.useState(waiter.task_done || false);
+  const [editing, setEditing] = React.useState(false);
+
+  const handleSaveTask = () => {
+    onAssignTask(taskInput, taskDone);
+    setEditing(false);
+  };
+
+  const handleToggleDone = () => {
+    const newDone = !taskDone;
+    setTaskDone(newDone);
+    onAssignTask(taskInput || waiter.task || "", newDone);
+  };
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-100 p-5 custom-shadow hover:shadow-md transition-shadow flex flex-col">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-3">
+        {waiter.photo_url ? (
+          <img src={`http://localhost:5000${waiter.photo_url}`} alt={waiter.first_name} className="w-12 h-12 rounded-full object-cover border-2 border-gray-100 flex-shrink-0" />
+        ) : (
+          <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-lg font-bold border-2 border-gray-100 flex-shrink-0">
+            {waiter.first_name[0]}{waiter.last_name[0]}
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold text-sm truncate">{waiter.first_name} {waiter.last_name}</p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${roleColors[waiter.staff_role || "waiter"] || "bg-gray-100 text-gray-600"}`}>
+              {waiter.staff_role || "waiter"}
+            </span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${statusColors[waiter.status || "active"]}`}>
+              {(waiter.status || "active").replace("_", " ")}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {waiter.phone || waiter.email ? (
+        <div className="space-y-0.5 text-xs text-gray-400 mb-3">
+          {waiter.phone && <p>📞 {waiter.phone}</p>}
+          {waiter.email && <p>✉️ {waiter.email}</p>}
+        </div>
+      ) : null}
+
+      {/* Task section */}
+      <div className="mt-auto">
+        <div className="flex items-center justify-between mb-1.5">
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Task</p>
+          <button onClick={() => setEditing(e => !e)} className="text-[10px] text-primary-container font-semibold hover:opacity-70">
+            {editing ? "Cancel" : taskInput ? "Edit" : "+ Assign"}
+          </button>
+        </div>
+
+        {editing ? (
+          <div className="space-y-2">
+            <input
+              autoFocus
+              type="text"
+              value={taskInput}
+              onChange={e => setTaskInput(e.target.value)}
+              placeholder="Describe the task..."
+              className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+            <div className="flex gap-2">
+              <button onClick={handleSaveTask} className="flex-1 py-1.5 bg-primary-container text-on-primary text-xs font-semibold rounded-lg hover:opacity-90">
+                Save Task
+              </button>
+            </div>
+          </div>
+        ) : taskInput ? (
+          <div className={`rounded-lg px-3 py-2 flex items-start gap-2 ${taskDone ? "bg-green-50 border border-green-100" : "bg-amber-50 border border-amber-100"}`}>
+            <input
+              type="checkbox"
+              checked={taskDone}
+              onChange={handleToggleDone}
+              className="mt-0.5 cursor-pointer accent-green-600"
+            />
+            <p className={`text-xs flex-1 ${taskDone ? "line-through text-green-600" : "text-amber-800"}`}>{taskInput}</p>
+            {taskDone && <span className="text-[10px] font-bold text-green-600">Done</span>}
+          </div>
+        ) : (
+          <p className="text-xs text-gray-300 italic">No task assigned</p>
+        )}
+      </div>
+
+      {/* Actions */}
+      <div className="flex justify-end gap-1 mt-3 pt-3 border-t border-gray-50">
+        <button onClick={onEdit} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+          <span className="material-symbols-outlined text-base">edit</span>
+        </button>
+        <button onClick={onDelete} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+          <span className="material-symbols-outlined text-base">delete</span>
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const SettingsPanel: React.FC<{
   restaurant: ApiRestaurant | null;
   onSaved: (r: ApiRestaurant) => void;
@@ -442,6 +550,27 @@ const OwnerDashboard: React.FC = () => {
       resetWaiterForm();
     } catch (error) {
       console.error("Error saving waiter:", error);
+    }
+  };
+
+  const handleQuickAssignTask = async (waiter: ApiWaiter, task: string, task_done: boolean): Promise<void> => {
+    try {
+      const data = await restaurantApi.updateWaiter(waiter.id, {
+        first_name: waiter.first_name,
+        last_name: waiter.last_name,
+        phone: waiter.phone || "",
+        email: waiter.email || "",
+        staff_role: waiter.staff_role || "waiter",
+        photo_url: waiter.photo_url || "",
+        status: waiter.status || "active",
+        task,
+        task_done,
+      });
+      if (data.waiter) {
+        setWaiters(prev => prev.map(w => w.id === waiter.id ? data.waiter! : w));
+      }
+    } catch (error) {
+      console.error("Error updating task:", error);
     }
   };
 
@@ -1363,49 +1492,15 @@ const OwnerDashboard: React.FC = () => {
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                       {filtered.map((waiter) => (
-                        <div key={waiter.id} className="bg-white rounded-xl border border-gray-100 p-5 custom-shadow hover:shadow-md transition-shadow">
-                          <div className="flex items-center gap-3 mb-4">
-                            {waiter.photo_url ? (
-                              <img src={`http://localhost:5000${waiter.photo_url}`} alt={waiter.first_name} className="w-12 h-12 rounded-full object-cover border-2 border-gray-100" />
-                            ) : (
-                              <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-xl font-bold border-2 border-gray-100">
-                                {waiter.first_name[0]}{waiter.last_name[0]}
-                              </div>
-                            )}
-                            <div className="min-w-0">
-                              <p className="font-semibold text-sm truncate">{waiter.first_name} {waiter.last_name}</p>
-                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${roleColors[waiter.staff_role || "waiter"] || "bg-gray-100 text-gray-600"}`}>
-                                {waiter.staff_role || "waiter"}
-                              </span>
-                            </div>
-                          </div>
-
-                          {waiter.task && (
-                            <div className="bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mb-3">
-                              <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wide mb-0.5">Current Task</p>
-                              <p className="text-xs text-amber-800">{waiter.task}</p>
-                            </div>
-                          )}
-
-                          <div className="space-y-1 text-xs text-gray-500 mb-4">
-                            {waiter.phone && <p>📞 {waiter.phone}</p>}
-                            {waiter.email && <p>✉️ {waiter.email}</p>}
-                          </div>
-
-                          <div className="flex items-center justify-between">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${statusColors[waiter.status || "active"]}`}>
-                              {(waiter.status || "active").replace("_", " ")}
-                            </span>
-                            <div className="flex gap-1">
-                              <button onClick={() => handleEditWaiter(waiter)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                                <span className="material-symbols-outlined text-base">edit</span>
-                              </button>
-                              <button onClick={() => handleDeleteWaiter(waiter.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                                <span className="material-symbols-outlined text-base">delete</span>
-                              </button>
-                            </div>
-                          </div>
-                        </div>
+                        <StaffCard
+                          key={waiter.id}
+                          waiter={waiter}
+                          roleColors={roleColors}
+                          statusColors={statusColors}
+                          onEdit={() => handleEditWaiter(waiter)}
+                          onDelete={() => handleDeleteWaiter(waiter.id)}
+                          onAssignTask={(task, done) => handleQuickAssignTask(waiter, task, done)}
+                        />
                       ))}
                     </div>
                   )}
