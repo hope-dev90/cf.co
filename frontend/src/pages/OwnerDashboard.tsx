@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { restaurantApi, orderApi } from "../lib/api";
-
-const formatNumber = (num: number): string => {
-  return `$${num.toFixed(2)}`;
-};
+import {
+  restaurantApi,
+  orderApi,
+  ApiRestaurant,
+  ApiOrder,
+  ApiMenuItem,
+  ApiTable,
+} from "../lib/api";
 
 interface Order {
   id: string;
@@ -14,10 +17,10 @@ interface Order {
   totalAmount: number;
   status:
     | "pending"
-    | "confirmed"
     | "preparing"
     | "ready"
-    | "delivered"
+    | "served"
+    | "completed"
     | "cancelled";
   createdAt: string;
 }
@@ -38,10 +41,45 @@ const OwnerDashboard: React.FC = () => {
     | "promotions"
   >("dashboard");
   const [loading, setLoading] = useState(true);
+  const [restaurant, setRestaurant] = useState<ApiRestaurant | null>(null);
   const [todayOrders, setTodayOrders] = useState(0);
   const [revenueToday, setRevenueToday] = useState(0);
   const [pendingOrders, setPendingOrders] = useState(0);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [menuItems, setMenuItems] = useState<ApiMenuItem[]>([]);
+  const [tables, setTables] = useState<ApiTable[]>([]);
+
+  const formatNumber = (num: number): string => {
+    return `$${num.toFixed(2)}`;
+  };
+
+  const formatTime = (dateStr: string): string => {
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+
+  const getStatusColor = (status: string): string => {
+    switch (status) {
+      case "pending":
+        return "bg-yellow-100 text-yellow-700";
+      case "preparing":
+        return "bg-orange-100 text-orange-700";
+      case "ready":
+        return "bg-blue-100 text-blue-700";
+      case "served":
+        return "bg-green-100 text-green-700";
+      case "completed":
+        return "bg-green-100 text-green-700";
+      case "cancelled":
+        return "bg-red-100 text-red-700";
+      default:
+        return "bg-gray-100 text-gray-700";
+    }
+  };
+
+  const getStatusLabel = (status: string): string => {
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -52,19 +90,28 @@ const OwnerDashboard: React.FC = () => {
           restaurantData.restaurants.length > 0
         ) {
           const rest = restaurantData.restaurants[0];
-          const ordersData = await orderApi.getByRestaurant(rest.id);
+          setRestaurant(rest);
+
+          const [ordersData, menuData, tablesData] = await Promise.all([
+            orderApi.getByRestaurant(rest.id),
+            restaurantApi.getMenu(rest.id),
+            restaurantApi.getTables(rest.id),
+          ]);
+
           const formattedOrders: Order[] = (ordersData.orders || []).map(
-            (order: any) => ({
+            (order: ApiOrder) => ({
               id: order.id.toString(),
               orderNumber: `#ORD-${String(order.id).padStart(3, "0")}`,
-              customerName: order.customer_name || "Customer",
-              totalAmount: parseFloat(order.total_amount) || 0,
+              customerName: order.customer_name,
+              totalAmount: parseFloat(order.total_amount.toString()) || 0,
               status: order.status,
-              createdAt: order.created_at || new Date().toISOString(),
+              createdAt: order.created_at,
             }),
           );
 
           setOrders(formattedOrders);
+          setMenuItems(menuData.menuItems || []);
+          setTables(tablesData.tables || []);
 
           const today = new Date().toDateString();
           const todayOrderList = formattedOrders.filter(
@@ -87,32 +134,22 @@ const OwnerDashboard: React.FC = () => {
     fetchData();
   }, []);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "bg-yellow-100 text-yellow-700";
-      case "confirmed":
-        return "bg-blue-100 text-blue-700";
-      case "preparing":
-        return "bg-orange-100 text-orange-700";
-      case "ready":
-        return "bg-green-100 text-green-700";
-      case "delivered":
-        return "bg-green-100 text-green-700";
-      case "cancelled":
-        return "bg-red-100 text-red-700";
-      default:
-        return "bg-gray-100 text-gray-700";
+  const handleUpdateOrderStatus = async (id: string, newStatus: string) => {
+    try {
+      await orderApi.updateStatus(id, newStatus);
+      setOrders((prev) =>
+        prev.map((order) =>
+          order.id === id ? { ...order, status: newStatus as any } : order,
+        ),
+      );
+      if (newStatus === "pending") {
+        setPendingOrders((prev) => prev + 1);
+      } else {
+        setPendingOrders((prev) => prev - 1);
+      }
+    } catch (err) {
+      console.error("Error updating order status:", err);
     }
-  };
-
-  const getStatusLabel = (status: string) => {
-    return status.charAt(0).toUpperCase() + status.slice(1);
-  };
-
-  const formatTime = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
   if (loading) {
@@ -128,38 +165,38 @@ const OwnerDashboard: React.FC = () => {
       {/* Sidebar */}
       <div
         className={`fixed left-0 top-0 h-full bg-[#1a1a2e] text-white transition-all duration-300 z-40 ${
-          sidebarOpen ? "w-72" : "w-0"
-        } overflow-hidden md:relative md:w-72`}
+          sidebarOpen ? "w-80" : "w-0"
+        } overflow-hidden md:relative md:w-80`}
       >
-        <div className="flex flex-col h-full p-5">
-          <div className="flex items-center gap-3 mb-7">
-            <img src="/logo.png" alt="CF Company" className="h-8 w-auto" />
-            <h1 className="text-lg font-bold">CF Company</h1>
+        <div className="flex flex-col h-full p-6">
+          <div className="flex items-center gap-4 mb-8">
+            <img src="/logo.png" alt="CF Company" className="h-10 w-auto" />
+            <h1 className="text-xl font-bold">CF Company</h1>
           </div>
 
           <div className="mb-6">
             <Link
               to="/"
-              className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-gray-300 hover:bg-[#16213e] transition-all text-sm"
+              className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-[#16213e] transition-all text-sm"
             >
               <span className="material-symbols-outlined">home</span>
               <span>Back Home</span>
             </Link>
           </div>
 
-          <div className="flex items-center gap-2.5 mb-6 p-3 bg-[#16213e] rounded-lg">
-            <span className="material-symbols-outlined text-[#e8722a]">
+          <div className="flex items-center gap-3 mb-8 p-4 bg-[#16213e] rounded-lg">
+            <span className="material-symbols-outlined text-[#e8722a] text-3xl">
               store
             </span>
             <div>
-              <p className="text-[11px] text-gray-400">Owner Panel</p>
+              <p className="text-xs text-gray-400">Owner Panel</p>
               <p className="text-sm font-semibold">
-                {authProfile?.name || "Owner"}
+                {authProfile?.name || restaurant?.name || "Owner"}
               </p>
             </div>
           </div>
 
-          <nav className="flex-1 space-y-1.5">
+          <nav className="flex-1 space-y-2">
             {[
               { id: "dashboard", label: "Dashboard", icon: "dashboard" },
               { id: "menu", label: "Menu", icon: "menu_book" },
@@ -172,7 +209,7 @@ const OwnerDashboard: React.FC = () => {
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id as any)}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all text-sm ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-sm ${
                   activeTab === item.id
                     ? "bg-[rgba(148,74,0,0.08)] border-r-4 border-[#944a00] text-[#944a00] font-bold"
                     : "text-gray-300 hover:bg-[#16213e]"
@@ -186,7 +223,7 @@ const OwnerDashboard: React.FC = () => {
 
           <button
             onClick={logout}
-            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-gray-300 hover:bg-red-500 hover:bg-opacity-20 hover:text-red-400 transition-all text-sm"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-red-500 hover:bg-opacity-20 hover:text-red-400 transition-all text-sm mt-4"
           >
             <span className="material-symbols-outlined">logout</span>
             <span>Logout</span>
@@ -204,10 +241,10 @@ const OwnerDashboard: React.FC = () => {
       </button>
 
       <div className="flex-1 min-h-screen pb-20">
-        <header className="flex justify-between items-center h-14 px-8 sticky top-0 z-40 bg-surface-container-lowest shadow-sm max-w-screen-2xl mx-auto">
+        <header className="flex justify-between items-center h-16 px-8 sticky top-0 z-40 bg-surface-container-lowest shadow-sm max-w-screen-2xl mx-auto">
           <div className="flex items-center">
             <span className="font-headline-md text-lg font-bold text-primary mr-10">
-              Menu Manager
+              {restaurant?.name || "Menu Manager"}
             </span>
             <nav className="hidden lg:flex space-x-8">
               <button
@@ -253,8 +290,8 @@ const OwnerDashboard: React.FC = () => {
             </nav>
           </div>
 
-          <div className="flex items-center space-x-5">
-            <div className="relative flex items-center bg-surface-container-low rounded-full px-3.5 py-2 w-56 border border-outline-variant focus-within:border-primary transition-all">
+          <div className="flex items-center space-x-6">
+            <div className="relative flex items-center bg-surface-container-low rounded-full px-4 py-2 w-64 border border-outline-variant focus-within:border-primary transition-all">
               <span className="material-symbols-outlined text-on-surface-variant text-[18px] mr-2">
                 search
               </span>
@@ -270,7 +307,7 @@ const OwnerDashboard: React.FC = () => {
             <div className="flex items-center space-x-2 cursor-pointer hover:opacity-80 transition-opacity">
               <img
                 alt="Restaurant Owner Profile"
-                className="w-7 h-7 rounded-full border border-primary/20 object-cover"
+                className="w-8 h-8 rounded-full border border-primary/20 object-cover"
                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuAnPnF8e340DfgCvtDXtsMxCDY7I6Mkx2xV0aP6BifNyYvfeDA2-UXbstrLoJe38AtR2HW8B8emyNPiUcpeC9YQIbK1t9bEpbDbwAMkvECp76iHVzQYeEvDxuo9jouwQzNQH-Wdb8_ZBmVBrPfCbquWWVQzyhZfwuwyXpR3rPKTHXaFWvTx1jazWCe_oz9hUvjUYM8jrAszO3bXe8xGexQ3riQFkBj4ur1kDUfw7WZ5zr-5hXFs349dbsGR4CVmZu4YMguDbRDUylYg"
               />
               <span className="material-symbols-outlined text-secondary">
@@ -281,12 +318,12 @@ const OwnerDashboard: React.FC = () => {
         </header>
 
         {activeTab === "dashboard" && (
-          <section className="px-8 mt-7 max-w-screen-2xl mx-auto">
-            <div className="mb-7">
+          <section className="px-8 mt-8 max-w-screen-2xl mx-auto">
+            <div className="mb-8">
               <h2 className="font-display-lg text-2xl text-on-surface tracking-tight">
                 Welcome back, {authProfile?.name || "Owner"}!
               </h2>
-              <p className="font-body-lg text-base text-on-surface-variant mt-1">
+              <p className="font-body-lg text-base text-on-surface-variant mt-2">
                 Here's your restaurant performance today
               </p>
             </div>
@@ -381,7 +418,7 @@ const OwnerDashboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-xl custom-shadow overflow-hidden mb-7">
+            <div className="bg-white rounded-xl custom-shadow overflow-hidden mb-8">
               <div className="px-6 py-4.5 border-b border-surface-variant flex justify-between items-center">
                 <h3 className="font-headline-sm text-sm text-on-surface font-bold">
                   Recent Orders
@@ -403,6 +440,7 @@ const OwnerDashboard: React.FC = () => {
                       <th className="px-6 py-3.5">Amount</th>
                       <th className="px-6 py-3.5">Status</th>
                       <th className="px-6 py-3.5">Time</th>
+                      <th className="px-6 py-3.5">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-surface-variant font-body-md text-sm">
@@ -410,9 +448,7 @@ const OwnerDashboard: React.FC = () => {
                       <tr
                         key={order.id}
                         className="hover:bg-surface-container-lowest transition-colors"
-                        style={{
-                          animationDelay: `${index * 100}ms`,
-                        }}
+                        style={{ animationDelay: `${index * 100}ms` }}
                       >
                         <td className="px-6 py-4 text-on-surface font-medium">
                           {order.orderNumber}
@@ -433,6 +469,22 @@ const OwnerDashboard: React.FC = () => {
                         <td className="px-6 py-4 text-on-surface-variant">
                           {formatTime(order.createdAt)}
                         </td>
+                        <td className="px-6 py-4">
+                          <select
+                            value={order.status}
+                            onChange={(e) =>
+                              handleUpdateOrderStatus(order.id, e.target.value)
+                            }
+                            className="text-xs px-2 py-1 rounded border border-gray-300"
+                          >
+                            <option value="pending">Pending</option>
+                            <option value="preparing">Preparing</option>
+                            <option value="ready">Ready</option>
+                            <option value="served">Served</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                          </select>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -442,18 +494,14 @@ const OwnerDashboard: React.FC = () => {
 
             <div className="flex items-center space-x-6">
               <button
-                onClick={() => {
-                  setActiveTab("menu");
-                }}
+                onClick={() => setActiveTab("menu")}
                 className="bg-primary-container text-on-primary hover:opacity-90 active:scale-95 px-6 py-3 rounded-xl font-headline-sm text-sm transition-all flex items-center shadow-md"
               >
                 <span className="material-symbols-outlined mr-2">add</span>
                 Add Menu Item
               </button>
               <button
-                onClick={() => {
-                  setActiveTab("orders");
-                }}
+                onClick={() => setActiveTab("orders")}
                 className="bg-white border-2 border-primary-container text-primary-container hover:bg-primary-container/5 active:scale-95 px-6 py-3 rounded-xl font-headline-sm text-sm transition-all flex items-center"
               >
                 <span className="material-symbols-outlined mr-2">
@@ -500,8 +548,8 @@ const OwnerDashboard: React.FC = () => {
                   </p>
                 </div>
                 <a
-                  className="text-white font-label-bold text-xs underline underline-offset-4"
                   href="#"
+                  className="text-white font-label-bold text-xs underline underline-offset-4"
                 >
                   Manage Availability
                 </a>
@@ -535,48 +583,182 @@ const OwnerDashboard: React.FC = () => {
         )}
 
         {activeTab === "menu" && (
-          <section className="px-8 mt-7 max-w-screen-2xl mx-auto">
-            <div className="mb-7">
+          <section className="px-8 mt-8 max-w-screen-2xl mx-auto">
+            <div className="mb-8">
               <h2 className="font-display-lg text-2xl text-on-surface tracking-tight">
                 Menu Management
               </h2>
-              <p className="font-body-lg text-base text-on-surface-variant mt-1">
+              <p className="font-body-lg text-base text-on-surface-variant mt-2">
                 Create and manage your restaurant menu items
               </p>
             </div>
             <div className="bg-white rounded-xl p-6 custom-shadow">
-              <p className="text-on-surface-variant text-sm">
-                Menu management interface will go here
-              </p>
+              {menuItems.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {menuItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="border border-gray-200 rounded-lg p-4"
+                    >
+                      <div className="flex justify-between">
+                        <h3 className="font-semibold">{item.name}</h3>
+                        <span className="text-primary font-bold">
+                          ${item.price}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {item.description}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Category: {item.category || "Uncategorized"}
+                      </p>
+                      <p
+                        className={`text-xs mt-1 ${item.is_available ? "text-green-600" : "text-red-600"}`}
+                      >
+                        {item.is_available ? "Available" : "Not Available"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-on-surface-variant text-sm">
+                  No menu items yet. Add your first item!
+                </p>
+              )}
             </div>
           </section>
         )}
 
         {activeTab === "orders" && (
-          <section className="px-8 mt-7 max-w-screen-2xl mx-auto">
-            <div className="mb-7">
+          <section className="px-8 mt-8 max-w-screen-2xl mx-auto">
+            <div className="mb-8">
               <h2 className="font-display-lg text-2xl text-on-surface tracking-tight">
                 Orders Management
               </h2>
-              <p className="font-body-lg text-base text-on-surface-variant mt-1">
+              <p className="font-body-lg text-base text-on-surface-variant mt-2">
                 Track and manage all incoming orders
               </p>
             </div>
-            <div className="bg-white rounded-xl p-6 custom-shadow">
-              <p className="text-on-surface-variant text-sm">
-                Orders management interface will go here
+            <div className="bg-white rounded-xl p-6 custom-shadow overflow-x-auto">
+              {orders.length > 0 ? (
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="bg-surface-container-lowest text-on-surface-variant font-label-bold text-xs border-b border-surface-variant">
+                      <th className="px-6 py-3.5">Order ID</th>
+                      <th className="px-6 py-3.5">Customer</th>
+                      <th className="px-6 py-3.5">Amount</th>
+                      <th className="px-6 py-3.5">Status</th>
+                      <th className="px-6 py-3.5">Time</th>
+                      <th className="px-6 py-3.5">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-surface-variant font-body-md text-sm">
+                    {orders.map((order) => (
+                      <tr
+                        key={order.id}
+                        className="hover:bg-surface-container-lowest transition-colors"
+                      >
+                        <td className="px-6 py-4 text-on-surface font-medium">
+                          {order.orderNumber}
+                        </td>
+                        <td className="px-6 py-4">{order.customerName}</td>
+                        <td className="px-6 py-4 text-primary-container font-semibold">
+                          {formatNumber(order.totalAmount)}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${getStatusColor(
+                              order.status,
+                            )}`}
+                          >
+                            {getStatusLabel(order.status)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-on-surface-variant">
+                          {formatTime(order.createdAt)}
+                        </td>
+                        <td className="px-6 py-4">
+                          <select
+                            value={order.status}
+                            onChange={(e) =>
+                              handleUpdateOrderStatus(order.id, e.target.value)
+                            }
+                            className="text-xs px-2 py-1 rounded border border-gray-300"
+                          >
+                            <option value="pending">Pending</option>
+                            <option value="preparing">Preparing</option>
+                            <option value="ready">Ready</option>
+                            <option value="served">Served</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                          </select>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="text-on-surface-variant text-sm">
+                  No orders yet.
+                </p>
+              )}
+            </div>
+          </section>
+        )}
+
+        {activeTab === "tables" && (
+          <section className="px-8 mt-8 max-w-screen-2xl mx-auto">
+            <div className="mb-8">
+              <h2 className="font-display-lg text-2xl text-on-surface tracking-tight">
+                Table Management
+              </h2>
+              <p className="font-body-lg text-base text-on-surface-variant mt-2">
+                Manage your restaurant tables
               </p>
+            </div>
+            <div className="bg-white rounded-xl p-6 custom-shadow">
+              {tables.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {tables.map((table) => (
+                    <div
+                      key={table.id}
+                      className="border border-gray-200 rounded-lg p-4"
+                    >
+                      <h3 className="font-semibold">
+                        Table {table.table_number}
+                      </h3>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Capacity: {table.capacity} people
+                      </p>
+                      {table.location_description && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Location: {table.location_description}
+                        </p>
+                      )}
+                      <p
+                        className={`text-xs mt-2 ${table.is_active ? "text-green-600" : "text-red-600"}`}
+                      >
+                        {table.is_active ? "Active" : "Inactive"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-on-surface-variant text-sm">
+                  No tables yet. Add your first table!
+                </p>
+              )}
             </div>
           </section>
         )}
 
         {activeTab === "analytics" && (
-          <section className="px-8 mt-7 max-w-screen-2xl mx-auto">
-            <div className="mb-7">
+          <section className="px-8 mt-8 max-w-screen-2xl mx-auto">
+            <div className="mb-8">
               <h2 className="font-display-lg text-2xl text-on-surface tracking-tight">
                 Analytics & Insights
               </h2>
-              <p className="font-body-lg text-base text-on-surface-variant mt-1">
+              <p className="font-body-lg text-base text-on-surface-variant mt-2">
                 Monitor your restaurant performance
               </p>
             </div>
@@ -589,12 +771,12 @@ const OwnerDashboard: React.FC = () => {
         )}
 
         {activeTab === "settings" && (
-          <section className="px-8 mt-7 max-w-screen-2xl mx-auto">
-            <div className="mb-7">
+          <section className="px-8 mt-8 max-w-screen-2xl mx-auto">
+            <div className="mb-8">
               <h2 className="font-display-lg text-2xl text-on-surface tracking-tight">
                 Settings
               </h2>
-              <p className="font-body-lg text-base text-on-surface-variant mt-1">
+              <p className="font-body-lg text-base text-on-surface-variant mt-2">
                 Manage your restaurant information and preferences
               </p>
             </div>
@@ -607,12 +789,12 @@ const OwnerDashboard: React.FC = () => {
         )}
 
         {activeTab === "waiters" && (
-          <section className="px-8 mt-7 max-w-screen-2xl mx-auto">
-            <div className="mb-7">
+          <section className="px-8 mt-8 max-w-screen-2xl mx-auto">
+            <div className="mb-8">
               <h2 className="font-display-lg text-2xl text-on-surface tracking-tight">
                 Waiter Management
               </h2>
-              <p className="font-body-lg text-base text-on-surface-variant mt-1">
+              <p className="font-body-lg text-base text-on-surface-variant mt-2">
                 Manage your restaurant waiters and staff
               </p>
             </div>
@@ -624,31 +806,13 @@ const OwnerDashboard: React.FC = () => {
           </section>
         )}
 
-        {activeTab === "tables" && (
-          <section className="px-8 mt-7 max-w-screen-2xl mx-auto">
-            <div className="mb-7">
-              <h2 className="font-display-lg text-2xl text-on-surface tracking-tight">
-                Table Management
-              </h2>
-              <p className="font-body-lg text-base text-on-surface-variant mt-1">
-                Manage your restaurant tables and floor plan
-              </p>
-            </div>
-            <div className="bg-white rounded-xl p-6 custom-shadow">
-              <p className="text-on-surface-variant text-sm">
-                Table management interface will go here
-              </p>
-            </div>
-          </section>
-        )}
-
         {activeTab === "categories" && (
-          <section className="px-8 mt-7 max-w-screen-2xl mx-auto">
-            <div className="mb-7">
+          <section className="px-8 mt-8 max-w-screen-2xl mx-auto">
+            <div className="mb-8">
               <h2 className="font-display-lg text-2xl text-on-surface tracking-tight">
                 Menu Categories
               </h2>
-              <p className="font-body-lg text-base text-on-surface-variant mt-1">
+              <p className="font-body-lg text-base text-on-surface-variant mt-2">
                 Manage your menu categories
               </p>
             </div>
@@ -661,12 +825,12 @@ const OwnerDashboard: React.FC = () => {
         )}
 
         {activeTab === "availability" && (
-          <section className="px-8 mt-7 max-w-screen-2xl mx-auto">
-            <div className="mb-7">
+          <section className="px-8 mt-8 max-w-screen-2xl mx-auto">
+            <div className="mb-8">
               <h2 className="font-display-lg text-2xl text-on-surface tracking-tight">
                 Availability Management
               </h2>
-              <p className="font-body-lg text-base text-on-surface-variant mt-1">
+              <p className="font-body-lg text-base text-on-surface-variant mt-2">
                 Manage your menu item availability
               </p>
             </div>
@@ -679,12 +843,12 @@ const OwnerDashboard: React.FC = () => {
         )}
 
         {activeTab === "promotions" && (
-          <section className="px-8 mt-7 max-w-screen-2xl mx-auto">
-            <div className="mb-7">
+          <section className="px-8 mt-8 max-w-screen-2xl mx-auto">
+            <div className="mb-8">
               <h2 className="font-display-lg text-2xl text-on-surface tracking-tight">
                 Promotions
               </h2>
-              <p className="font-body-lg text-base text-on-surface-variant mt-1">
+              <p className="font-body-lg text-base text-on-surface-variant mt-2">
                 Manage your restaurant promotions
               </p>
             </div>
