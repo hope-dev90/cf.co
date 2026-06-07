@@ -190,7 +190,23 @@ const SignupPage: React.FC = () => {
 
   return (
     <div className="min-h-screen flex items-stretch bg-[#fef8f3]">
-      {/* LEFT */}
+      {/* LEFT - Images */}
+      <div className="hidden lg:flex lg:w-1/2 items-center justify-center bg-[#1a1a2e] text-white overflow-hidden p-8">
+        <div className="relative w-full h-full">
+          {SLIDESHOW_IMAGES.map((image, index) => (
+            <img
+              key={index}
+              src={image}
+              alt={`Slide ${index + 1}`}
+              className={`absolute inset-0 h-full w-full rounded-3xl object-cover shadow-2xl transition-opacity duration-1000 ${
+                index === currentSlide ? "opacity-100" : "opacity-0"
+              }`}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* RIGHT - Form */}
       <div className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">
           <h1 className="text-4xl font-bold mb-2 text-[#00000b]">
@@ -531,22 +547,6 @@ const SignupPage: React.FC = () => {
               Sign In
             </Link>
           </div>
-        </div>
-      </div>
-
-      {/* RIGHT */}
-      <div className="hidden lg:flex lg:w-1/2 items-center justify-center bg-[#1a1a2e] text-white overflow-hidden p-8">
-        <div className="relative w-full h-full">
-          {SLIDESHOW_IMAGES.map((image, index) => (
-            <img
-              key={index}
-              src={image}
-              alt={`Slide ${index + 1}`}
-              className={`absolute inset-0 h-full w-full rounded-3xl object-cover shadow-2xl transition-opacity duration-1000 ${
-                index === currentSlide ? "opacity-100" : "opacity-0"
-              }`}
-            />
-          ))}
         </div>
       </div>
     </div>
