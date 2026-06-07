@@ -1328,7 +1328,7 @@ const OwnerDashboard: React.FC = () => {
             {/* Role filter tabs */}
             {(() => {
               const roles = ["all", "waiter", "manager", "security", "chef", "cashier"];
-              const filtered = activeStaffRole === "all" ? waiters : waiters.filter(w => w.staff_role === activeStaffRole);
+              const filtered = activeStaffRole === "all" ? waiters : waiters.filter(w => (w.staff_role || "waiter") === activeStaffRole);
               const roleColors: Record<string, string> = {
                 waiter: "bg-blue-100 text-blue-700",
                 manager: "bg-purple-100 text-purple-700",
@@ -1350,7 +1350,7 @@ const OwnerDashboard: React.FC = () => {
                         onClick={() => setActiveStaffRole(r)}
                         className={`px-4 py-1.5 rounded-full text-xs font-semibold capitalize transition-all ${activeStaffRole === r ? "bg-primary-container text-on-primary" : "bg-white border border-gray-200 text-gray-500 hover:border-primary"}`}
                       >
-                        {r === "all" ? `All (${waiters.length})` : `${r} (${waiters.filter(w => w.staff_role === r).length})`}
+                        {r === "all" ? `All (${waiters.length})` : `${r} (${waiters.filter(w => (w.staff_role || "waiter") === r).length})`}
                       </button>
                     ))}
                   </div>
