@@ -66,9 +66,10 @@ const OwnerDashboard: React.FC = () => {
     is_active: true,
   });
   const [waiterForm, setWaiterForm] = useState({
-    name: "",
+    first_name: "",
+    last_name: "",
     phone: "",
-    is_active: true,
+    email: "",
   });
 
   const formatNumber = (num: number): string => {
@@ -249,7 +250,10 @@ const OwnerDashboard: React.FC = () => {
           );
         }
       } else {
-        const data = await restaurantApi.addWaiter(restaurant.id, waiterForm);
+        const data = await restaurantApi.addWaiter(restaurant.id, {
+          ...waiterForm,
+          user_id: null,
+        });
         if (data.waiter) {
           setWaiters((prev) => [...prev, data.waiter]);
         }
@@ -273,18 +277,20 @@ const OwnerDashboard: React.FC = () => {
   const handleEditWaiter = (waiter: ApiWaiter): void => {
     setEditingWaiter(waiter);
     setWaiterForm({
-      name: waiter.name,
+      first_name: waiter.first_name,
+      last_name: waiter.last_name,
       phone: waiter.phone || "",
-      is_active: waiter.is_active,
+      email: waiter.email || "",
     });
     setShowAddWaiterModal(true);
   };
 
   const resetWaiterForm = (): void => {
     setWaiterForm({
-      name: "",
+      first_name: "",
+      last_name: "",
       phone: "",
-      is_active: true,
+      email: "",
     });
     setEditingWaiter(null);
   };
@@ -750,13 +756,6 @@ const OwnerDashboard: React.FC = () => {
                       <p className="text-xs text-gray-500 mt-2">
                         Category: {item.category || "Uncategorized"}
                       </p>
-                      <p
-                        className={`text-xs mt-1 ${
-                          item.is_active ? "text-green-600" : "text-red-600"
-                        }`}
-                      >
-                        {item.is_active ? "Available" : "Not Available"}
-                      </p>
                     </div>
                   ))}
                 </div>
@@ -958,7 +957,9 @@ const OwnerDashboard: React.FC = () => {
                       className="border border-gray-200 rounded-lg p-4"
                     >
                       <div className="flex justify-between items-center">
-                        <h3 className="font-semibold">{waiter.name}</h3>
+                        <h3 className="font-semibold">
+                          {waiter.first_name} {waiter.last_name}
+                        </h3>
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleEditWaiter(waiter)}
@@ -983,13 +984,11 @@ const OwnerDashboard: React.FC = () => {
                           Phone: {waiter.phone}
                         </p>
                       )}
-                      <p
-                        className={`text-xs mt-2 ${
-                          waiter.is_active ? "text-green-600" : "text-red-600"
-                        }`}
-                      >
-                        {waiter.is_active ? "Active" : "Inactive"}
-                      </p>
+                      {waiter.email && (
+                        <p className="text-sm text-gray-600 mt-1">
+                          Email: {waiter.email}
+                        </p>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1168,16 +1167,36 @@ const OwnerDashboard: React.FC = () => {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-on-surface mb-1">
-                    Name
+                    First Name
                   </label>
                   <input
                     type="text"
-                    value={waiterForm.name}
+                    value={waiterForm.first_name}
                     onChange={(e) =>
-                      setWaiterForm({ ...waiterForm, name: e.target.value })
+                      setWaiterForm({
+                        ...waiterForm,
+                        first_name: e.target.value,
+                      })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="John Doe"
+                    placeholder="John"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-on-surface mb-1">
+                    Last Name
+                  </label>
+                  <input
+                    type="text"
+                    value={waiterForm.last_name}
+                    onChange={(e) =>
+                      setWaiterForm({
+                        ...waiterForm,
+                        last_name: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="Doe"
                   />
                 </div>
                 <div>
@@ -1194,25 +1213,19 @@ const OwnerDashboard: React.FC = () => {
                     placeholder="+123456789"
                   />
                 </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="waiter_active"
-                    checked={waiterForm.is_active}
-                    onChange={(e) =>
-                      setWaiterForm({
-                        ...waiterForm,
-                        is_active: e.target.checked,
-                      })
-                    }
-                    className="rounded"
-                  />
-                  <label
-                    htmlFor="waiter_active"
-                    className="text-sm text-on-surface"
-                  >
-                    Active
+                <div>
+                  <label className="block text-sm font-medium text-on-surface mb-1">
+                    Email (optional)
                   </label>
+                  <input
+                    type="text"
+                    value={waiterForm.email}
+                    onChange={(e) =>
+                      setWaiterForm({ ...waiterForm, email: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="john@example.com"
+                  />
                 </div>
               </div>
               <div className="flex gap-3 mt-6">
