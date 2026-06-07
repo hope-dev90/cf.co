@@ -1,87 +1,87 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { restaurantApi } from "../lib/api";
+import type { ApiRestaurant } from "../lib/api";
 
-// Use the real API restaurants with fallback images
-const RESTAURANT_IMAGES = [
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuC4dScZ7C51i3F4f0kD35GCHF-DvcThqkC-v1uQ6lHz57uOQUONkk42uWYXdPEAfXtzHiiY1UpLjOH-BOC3tS8DcyuAdHz0kzUZ1-dad1dYhwbLPDFExOVihiXgHF4tp4pOa6zNWmXhjbFjrURcoREDlp-EHzgQSQCU5kqK1MTQpB0gja-u9iLvpw4XXxFf9Vw7p1CBox_0L4z0hEWKdh0UpgvLFubyxpTUFXv4VcIi_F2HxkC7AS4DuCjQPKhKX9Es2eb8oe_Zmst0",
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuBzjYuUvNn5PPN-r9sSsDVT8FF9Pr4KcF3TKH7DCpOkDtuOCVowa36N5rWfh1MXVZowDZOBSG1O-wfWU8CtE1ohfE8Oe0fWclM576nBYAvkpYQB5UMA_qlb1AiFA12P_Ww_pgwOv2PX-Qj_qUuSkm3HGxF2QVKVcCQKtYtPyh49QpeqzcygiEeOB5fV7fQN8ILWdnnbPDYmqQOAmDRhtUYhYwokgAFcERx764pX4FXf7HA8Kedgw--biLuUd3v6FSkzQNVX7R4mDJyP",
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuCWNiUJE_N3qOInpzYns-Ip93kCebNvNBovJNDIM1BqObLxDKAhMQYp2Xea-bUur0ViLu4tvyreRqbR25v0UFJQ9XqY7_8_FuIULV1blaI8arKNMZb1oh34Q5a1zW2P2FXDwQqBtcDcgwFAAG3ddRft6dHTqkjwf8itCBzjrvxdvQgC_vEQN-zKevBRNsX9dct5Z5xt3CKSwQ9_ZQbq3SxpuAk-57twrXJiZixvnoidaMN8xV7DNLWBdfq7zpzxeW_BX8Hi2y67kuXM",
+const FOOD_IMAGES = [
   "https://images.pexels.com/photos/1059905/pexels-photo-1059905.jpeg?auto=compress&cs=tinysrgb&w=800",
   "https://images.pexels.com/photos/1410235/pexels-photo-1410235.jpeg?auto=compress&cs=tinysrgb&w=800",
   "https://images.pexels.com/photos/1092730/pexels-photo-1092730.jpeg?auto=compress&cs=tinysrgb&w=800",
+  "https://images.pexels.com/photos/1624487/pexels-photo-1624487.jpeg?auto=compress&cs=tinysrgb&w=800",
+  "https://images.pexels.com/photos/958545/pexels-photo-958545.jpeg?auto=compress&cs=tinysrgb&w=800",
+  "https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg?auto=compress&cs=tinysrgb&w=800",
 ];
-
-const FALLBACK_RESTAURANTS = [
-  {
-    id: "1",
-    name: "Gourmet Bistro",
-    cuisine: "French",
-    rating: 4.5,
-    description: "We cook delicious food!",
-  },
-  {
-    id: "2",
-    name: "Test Bistro",
-    cuisine: "International",
-    rating: 4.5,
-    description: "A cozy test restaurant serving delicious food!",
-  },
-  {
-    id: "3",
-    name: "Lumina Dining",
-    cuisine: "Italian Modern",
-    rating: 4.9,
-    description:
-      "Experience the future of fine dining with locally sourced ingredients.",
-  },
-];
-
-interface RestaurantCard {
-  id: string;
-  name: string;
-  cuisine: string;
-  rating: number;
-  image: string;
-  description: string;
-  raw: any;
-}
 
 const BrowseRestaurants: React.FC = () => {
-  const searchRef = useRef<HTMLInputElement | null>(null);
   const { profile } = useAuth();
-  const [restaurants, setRestaurants] = useState<RestaurantCard[]>([]);
+  const searchRef = useRef<HTMLInputElement | null>(null);
+  const [restaurants, setRestaurants] = useState<ApiRestaurant[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    const input = searchRef.current;
-    if (!input) return;
-
-    const handleFocus = () => {
-      input.parentElement?.classList.add("scale-[1.01]");
-    };
-
-    const handleBlur = () => {
-      input.parentElement?.classList.remove("scale-[1.01]");
-    };
-
-    input.addEventListener("focus", handleFocus);
-    input.addEventListener("blur", handleBlur);
-
-    return () => {
-      input.removeEventListener("focus", handleFocus);
-      input.removeEventListener("blur", handleBlur);
-    };
+    restaurantApi
+      .getAll()
+      .then((data) => setRestaurants(data.restaurants || []))
+      .catch(() => setError("Failed to load restaurants. Please try again."))
+      .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    const fetchRestaurants = async () => {
-      try {
-        const data = await restaurantApi.getAll();
-        if (data.success && data.restaurants && data.restaurants.length > 0) {
-          const mappedRestaurants: RestaurantCard[] = data.restaurants.map(
-            (restaurant, index) => ({
+  const filtered = useMemo(() => {
+    if (!search.trim()) return restaurants;
+    const q = search.toLowerCase();
+    return restaurants.filter(
+      (r) =>
+        r.name.toLowerCase().includes(q) ||
+        (r.cuisine_type || "").toLowerCase().includes(q) ||
+        (r.description || "").toLowerCase().includes(q),
+    );
+  }, [restaurants, search]);
+
+  const dashboardPath =
+    profile?.role === "admin"
+      ? "/admin"
+      : profile?.role === "restaurateur"
+        ? "/owner"
+        : "/dashboard";
+
+  return (
+    <div className="min-h-screen bg-[#faf5f0] text-[#1a1a2e] flex flex-col">
+      {/* ── Navbar ── */}
+      <header className="fixed top-0 inset-x-0 z-50 bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-2 shrink-0 hover:opacity-80 transition-opacity">
+            <img src="/logo.png" alt="CF Company" className="h-9 w-auto" />
+            <span className="hidden sm:block text-lg font-bold text-[#1a1a2e]">CF Company</span>
+          </Link>
+
+          {/* Desktop nav */}
+          <nav className="hidden md:flex items-center gap-6">
+            <Link to="/" className="text-sm font-medium text-[#4a4a68] hover:text-[#e8722a] transition-colors">Home</Link>
+            <Link to="/restaurants" className="text-sm font-semibold text-[#e8722a] border-b-2 border-[#e8722a] pb-0.5">Restaurants</Link>
+          </nav>
+
+          {/* Right side */}
+          <div className="flex items-center gap-3">
+            {profile ? (
+              <Link to={dashboardPath}
+                className="hidden sm:inline-flex px-4 py-2 bg-[#e8722a] text-white text-sm font-semibold rounded-lg hover:bg-[#d4631f] transition-colors">
+                Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link to="/login"
+                  className="hidden sm:inline-flex px-4 py-2 border border-[#e8722a] text-[#e8722a] text-sm font-semibold rounded-lg hover:bg-[#faf5f0] transition-colors">
+                  Login
+                </Link>
+                <Link to="/signup"
+                  className="px-4 py-2 bg-[#e8722a] text-white text-sm font-semibold rounded-lg hover:bg-[#d4631f] transition-colors">
+                  Sign Up
+                </Link>
               id: String(restaurant.id),
               name: restaurant.name,
               cuisine: restaurant.cuisine_type || "Restaurant",
