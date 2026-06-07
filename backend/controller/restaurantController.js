@@ -46,6 +46,10 @@ import {
   updateOrderStatus,
   updateOrder,
   deleteOrder,
+  getRestaurantAnalytics,
+  getDailySales,
+  getTopMenuItems,
+  getOrdersByStatus,
 } from "../models/restaurantModel.js";
 
 export const createRestaurantController = async (req, res) => {
@@ -241,22 +245,21 @@ export const getMenuItemByIdController = async (req, res) => {
   }
 };
 
-export const filterByCategoryController = async(req,res)=>{
-  try{
+export const filterByCategoryController = async (req, res) => {
+  try {
     const menuItem = await filterByCategory(req.params.category);
-    if(!menuItem){
+    if (!menuItem) {
       return res
-      .status(404)
-      .json({success: false, message:"Menu category not found"});
+        .status(404)
+        .json({ success: false, message: "Menu category not found" });
     }
-    res.json({success: true, menuItem});
+    res.json({ success: true, menuItem });
+  } catch (error) {
+    console.error("Get menu Item error: ", error);
+    res.status(500);
+    res.json({ success: false, message: "failed to get menu item" });
   }
-  catch(error){
-    console.error("Get menu Item error: ",error);
-    res.status(500)
-    res.json({success: false , message:"failed to get menu item"});
-  }
-}
+};
 
 export const updateMenuItemController = async (req, res) => {
   try {
@@ -341,7 +344,9 @@ export const updateWaiterController = async (req, res) => {
     res.json({ success: true, waiter });
   } catch (error) {
     console.error("Update waiter error:", error);
-    res.status(500).json({ success: false, message: "Failed to update waiter" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to update waiter" });
   }
 };
 
@@ -356,7 +361,9 @@ export const deleteWaiterController = async (req, res) => {
     res.json({ success: true, message: "Waiter deleted" });
   } catch (error) {
     console.error("Delete waiter error:", error);
-    res.status(500).json({ success: false, message: "Failed to delete waiter" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to delete waiter" });
   }
 };
 
@@ -617,7 +624,9 @@ export const deleteTableAvailabilityController = async (req, res) => {
     res.json({ success: true, message: "Table availability deleted" });
   } catch (error) {
     console.error("Delete table availability error:", error);
-    res.status(500).json({ success: false, message: "Failed to delete table availability" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to delete table availability" });
   }
 };
 
@@ -626,18 +635,20 @@ export const reserveTableController = async (req, res) => {
     const availability = await reserveTable(
       req.params.id,
       req.user.id,
-      req.body
+      req.body,
     );
     if (!availability) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Table is not available for reservation" 
+      return res.status(400).json({
+        success: false,
+        message: "Table is not available for reservation",
       });
     }
     res.status(200).json({ success: true, availability });
   } catch (error) {
     console.error("Reserve table error:", error);
-    res.status(500).json({ success: false, message: "Failed to reserve table" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to reserve table" });
   }
 };
 
@@ -650,7 +661,7 @@ export const createOrderController = async (req, res) => {
     const order = await createOrder({
       ...req.body,
       user_id: req.user.id,
-      status: "pending"
+      status: "pending",
     });
     res.status(201).json({ success: true, order });
   } catch (error) {
@@ -663,7 +674,9 @@ export const getOrderByIdController = async (req, res) => {
   try {
     const order = await getOrderById(req.params.id);
     if (!order) {
-      return res.status(404).json({ success: false, message: "Order not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found" });
     }
     res.json({ success: true, order });
   } catch (error) {
@@ -686,7 +699,7 @@ export const getRestaurantOrdersController = async (req, res) => {
   try {
     const orders = await getOrdersByRestaurantWithItems(
       req.params.restaurantId,
-      req.query.status
+      req.query.status,
     );
     res.json({ success: true, orders });
   } catch (error) {
@@ -699,12 +712,16 @@ export const updateOrderStatusController = async (req, res) => {
   try {
     const order = await updateOrderStatus(req.params.id, req.body.status);
     if (!order) {
-      return res.status(404).json({ success: false, message: "Order not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found" });
     }
     res.json({ success: true, order });
   } catch (error) {
     console.error("Update order status error:", error);
-    res.status(500).json({ success: false, message: "Failed to update order status" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to update order status" });
   }
 };
 
@@ -712,7 +729,9 @@ export const updateOrderController = async (req, res) => {
   try {
     const order = await updateOrder(req.params.id, req.body);
     if (!order) {
-      return res.status(404).json({ success: false, message: "Order not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found" });
     }
     res.json({ success: true, order });
   } catch (error) {
@@ -725,11 +744,80 @@ export const deleteOrderController = async (req, res) => {
   try {
     const order = await deleteOrder(req.params.id);
     if (!order) {
-      return res.status(404).json({ success: false, message: "Order not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found" });
     }
     res.json({ success: true, message: "Order deleted" });
   } catch (error) {
     console.error("Delete order error:", error);
     res.status(500).json({ success: false, message: "Failed to delete order" });
+  }
+};
+
+// ------------------------------
+// ANALYTICS
+// ------------------------------
+
+export const getAnalyticsController = async (req, res) => {
+  try {
+    const { restaurantId } = req.params;
+    const { startDate, endDate } = req.query;
+
+    const analytics = await getRestaurantAnalytics(
+      restaurantId,
+      startDate,
+      endDate,
+    );
+    res.json({ success: true, analytics });
+  } catch (error) {
+    console.error("Get analytics error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to get analytics" });
+  }
+};
+
+export const getDailySalesController = async (req, res) => {
+  try {
+    const { restaurantId } = req.params;
+    const { startDate, endDate } = req.query;
+
+    const dailySales = await getDailySales(restaurantId, startDate, endDate);
+    res.json({ success: true, dailySales });
+  } catch (error) {
+    console.error("Get daily sales error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to get daily sales" });
+  }
+};
+
+export const getTopMenuItemsController = async (req, res) => {
+  try {
+    const { restaurantId } = req.params;
+    const { limit } = req.query;
+
+    const topItems = await getTopMenuItems(restaurantId, limit);
+    res.json({ success: true, topItems });
+  } catch (error) {
+    console.error("Get top menu items error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to get top menu items" });
+  }
+};
+
+export const getOrdersByStatusController = async (req, res) => {
+  try {
+    const { restaurantId } = req.params;
+
+    const statusCounts = await getOrdersByStatus(restaurantId);
+    res.json({ success: true, statusCounts });
+  } catch (error) {
+    console.error("Get orders by status error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to get orders by status" });
   }
 };

@@ -712,3 +712,78 @@ export const deleteOrder = async (id) => {
   );
   return result.rows[0];
 };
+
+// ------------------------------
+// ANALYTICS
+// ------------------------------
+
+export const getRestaurantAnalytics = async (
+  restaurant_id,
+  startDate = null,
+  endDate = null,
+) => {
+  let query = `
+    SELECT 
+      COUNT(*) as total_orders,
+      SUM(total_amount) as total_revenue,
+      AVG(total_amount) as avg_order_value
+    FROM restaurant_orders 
+    WHERE restaurant_id = $1
+  `;
+  const params = [restaurant_id];
+
+  if (startDate && endDate) {
+    query += ` AND created_at BETWEEN $2 AND $3`;
+    params.push(startDate, endDate);
+  }
+
+  const result = await pool.query(query, params);
+  return result.rows[0];
+};
+
+export const getDailySales = async (restaurant_id, startDate, endDate) => {
+  const result = await pool.query(
+    `SELECT 
+      DATE(created_at) as date,
+      COUNT(*) as orders_count,
+      SUM(total_amount) as revenue
+    FROM restaurant_orders
+    WHERE restaurant_id = $1 AND created_at BETWEEN $2 AND $3
+    GROUP BY DATE(created_at)
+    ORDER BY date`,
+    [restaurant_id, startDate, endDate],
+  );
+  return result.rows;
+};
+
+export const getTopMenuItems = async (restaurant_id, limit = 5) => {
+  const result = await pool.query(
+    `SELECT 
+      mi.id,
+      mi.name,
+      mi.image_url,
+      SUM(oi.quantity) as total_sold
+    FROM order_items oi
+    JOIN menu_items mi ON oi.menu_item_id = mi.id
+    JOIN restaurant_orders ro ON oi.order_id = ro.id
+    WHERE ro.restaurant_id = $1
+    GROUP BY mi.id, mi.name, mi.image_url
+    ORDER BY total_sold DESC
+    LIMIT $2`,
+    [restaurant_id, limit],
+  );
+  return result.rows;
+};
+
+export const getOrdersByStatus = async (restaurant_id) => {
+  const result = await pool.query(
+    `SELECT 
+      status,
+      COUNT(*) as count
+    FROM restaurant_orders
+    WHERE restaurant_id = $1
+    GROUP BY status`,
+    [restaurant_id],
+  );
+  return result.rows;
+};

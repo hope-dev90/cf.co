@@ -121,6 +121,30 @@ interface ApiOrder {
   items?: ApiOrderItem[];
 }
 
+interface ApiAnalytics {
+  total_orders: number;
+  total_revenue: number;
+  avg_order_value: number;
+}
+
+interface ApiDailySale {
+  date: string;
+  orders_count: number;
+  revenue: number;
+}
+
+interface ApiTopMenuItem {
+  id: number;
+  name: string;
+  image_url?: string;
+  total_sold: number;
+}
+
+interface ApiOrderStatusCount {
+  status: string;
+  count: number;
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 // API client
@@ -275,6 +299,29 @@ export const restaurantApi = {
     }),
   deleteWaiter: (id: string | number) =>
     apiClient<{ success: boolean }>(`/restaurants/waiters/${id}`, { method: 'DELETE' }),
+    
+  // Analytics
+  getAnalytics: (restaurantId: string | number, startDate?: string, endDate?: string) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    const url = `/restaurants/${restaurantId}/analytics${params.toString() ? `?${params.toString()}` : ''}`;
+    return apiClient<{ success: boolean; analytics: ApiAnalytics }>(url, { method: 'GET' });
+  },
+  getDailySales: (restaurantId: string | number, startDate: string, endDate: string) => {
+    const params = new URLSearchParams({ startDate, endDate });
+    return apiClient<{ success: boolean; dailySales: ApiDailySale[] }>(
+      `/restaurants/${restaurantId}/analytics/daily-sales?${params.toString()}`,
+      { method: 'GET' }
+    );
+  },
+  getTopMenuItems: (restaurantId: string | number, limit?: number) => {
+    const params = limit ? new URLSearchParams({ limit: limit.toString() }) : new URLSearchParams();
+    const url = `/restaurants/${restaurantId}/analytics/top-items${params.toString() ? `?${params.toString()}` : ''}`;
+    return apiClient<{ success: boolean; topItems: ApiTopMenuItem[] }>(url, { method: 'GET' });
+  },
+  getOrdersByStatus: (restaurantId: string | number) => 
+    apiClient<{ success: boolean; statusCounts: ApiOrderStatusCount[] }>(`/restaurants/${restaurantId}/analytics/orders-status`, { method: 'GET' }),
 };
 
 // Orders API
@@ -295,4 +342,17 @@ export const orderApi = {
     }),
 };
 
-export type { ApiRestaurant, ApiMenuItem, ApiTable, ApiTableAvailability, ApiOrder, ApiOrderItem, ApiUser, ApiWaiter };
+export type { 
+  ApiRestaurant, 
+  ApiMenuItem, 
+  ApiTable, 
+  ApiTableAvailability, 
+  ApiOrder, 
+  ApiOrderItem, 
+  ApiUser, 
+  ApiWaiter, 
+  ApiAnalytics, 
+  ApiDailySale, 
+  ApiTopMenuItem, 
+  ApiOrderStatusCount 
+};
