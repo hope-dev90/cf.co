@@ -29,6 +29,7 @@ import {
   Loader2,
   User,
   Table,
+  Home,
 } from "lucide-react";
 import {
   Chart as ChartJS,
@@ -43,7 +44,7 @@ import {
   Legend,
 } from "chart.js";
 import { Line, Bar, Doughnut } from "react-chartjs-2";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { restaurantApi, orderApi } from "../lib/api";
 

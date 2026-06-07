@@ -68,12 +68,13 @@ export default function BrowseRestaurants() {
       <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate("/")}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            <Link
+              to="/"
+              className="flex items-center gap-2 text-[#1a1a2e] hover:text-[#e8722a] transition-colors"
             >
-              <ArrowLeft size={24} className="text-[#1a1a2e]" />
-            </button>
+              <ArrowLeft size={24} />
+              <span className="font-semibold">Back Home</span>
+            </Link>
             <div className="flex-1">
               <h1 className="text-2xl font-bold text-[#1a1a2e]">
                 Browse Restaurants

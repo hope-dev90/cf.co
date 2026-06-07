@@ -9,8 +9,9 @@ import {
   ChevronRight,
   Loader,
   CalendarDays,
+  Home,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { orderApi, restaurantApi } from "../lib/api";
 import BookingFlow from "../components/booking/BookingFlow";
@@ -403,6 +404,16 @@ const UserDashboard: React.FC = () => {
         <div className="flex items-center gap-3 border-b border-gray-700 p-6">
           <img src="/logo.png" alt="CF Company" className="h-10 w-auto" />
           <span className="text-xl font-bold text-white">CF Company</span>
+        </div>
+
+        <div className="px-6 py-3">
+          <Link
+            to="/"
+            className="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-400 transition-colors hover:text-white hover:bg-gray-800"
+          >
+            <Home size={20} />
+            <span className="font-medium">Back Home</span>
+          </Link>
         </div>
 
         <div className="flex items-center gap-4 border-b border-gray-700 p-6">
