@@ -349,7 +349,10 @@ export const addMenuItem = async (menuData) => {
       image_url,
     ],
   );
-  return result.rows[0];
+  return {
+    ...result.rows[0],
+    price: Number(result.rows[0].price)
+  };
 };
 
 export const getMenuItems = async (restaurant_id) => {
@@ -357,14 +360,23 @@ export const getMenuItems = async (restaurant_id) => {
     `SELECT * FROM menu_items WHERE restaurant_id = $1 ORDER BY category, name`,
     [restaurant_id],
   );
-  return result.rows;
+  return result.rows.map((item) => ({
+    ...item,
+    price: Number(item.price),
+  }));
 };
 
 export const getMenuItemById = async (id) => {
   const result = await pool.query(`SELECT * FROM menu_items WHERE id = $1`, [
     id,
   ]);
-  return result.rows[0];
+  if(result.rows[0]) {
+    return {
+      ...result.rows[0],
+      price: Number(result.rows[0].price)
+    };
+  }
+  return null;
 };
 
 export const filterByCategory = async (category) => {
@@ -383,10 +395,16 @@ export const updateMenuItem = async (id, menuData) => {
     `UPDATE menu_items SET 
       name = $1, description = $2, price = $3, category = $4, 
       is_available = $5, image_url = $6, updated_at = NOW()
-     WHERE id = $7 RETURNING *`,
+    WHERE id = $7 RETURNING *`,
     [name, description, price, category, is_available, image_url, id],
   );
-  return result.rows[0];
+  if(result.rows[0]) {
+    return {
+      ...result.rows[0],
+      price: Number(result.rows[0].price)
+    };
+  }
+  return null;
 };
 
 export const deleteMenuItem = async (id) => {
@@ -569,7 +587,10 @@ export const createOrder = async (orderData) => {
     }
 
     await client.query("COMMIT");
-    return order;
+    return {
+      ...order,
+      total_amount: Number(order.total_amount)
+    };
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
@@ -738,7 +759,12 @@ export const getRestaurantAnalytics = async (
   }
 
   const result = await pool.query(query, params);
-  return result.rows[0];
+  const row = result.rows[0];
+  return {
+    total_orders: Number(row.total_orders),
+    total_revenue: Number(row.total_revenue) || 0,
+    avg_order_value: Number(row.avg_order_value) || 0
+  };
 };
 
 export const getDailySales = async (restaurant_id, startDate, endDate) => {
@@ -753,7 +779,11 @@ export const getDailySales = async (restaurant_id, startDate, endDate) => {
     ORDER BY date`,
     [restaurant_id, startDate, endDate],
   );
-  return result.rows;
+  return result.rows.map(row => ({
+    date: row.date,
+    orders_count: Number(row.orders_count),
+    revenue: Number(row.revenue)
+  }));
 };
 
 export const getTopMenuItems = async (restaurant_id, limit = 5) => {
@@ -772,7 +802,10 @@ export const getTopMenuItems = async (restaurant_id, limit = 5) => {
     LIMIT $2`,
     [restaurant_id, limit],
   );
-  return result.rows;
+  return result.rows.map(row => ({
+    ...row,
+    total_sold: Number(row.total_sold)
+  }));
 };
 
 export const getOrdersByStatus = async (restaurant_id) => {
