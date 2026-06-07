@@ -416,13 +416,13 @@ export const deleteMenuItem = async (id) => {
 };
 
 export const addWaiter = async (waiterData) => {
-  const { restaurant_id, user_id, first_name, last_name, phone, email, staff_role, task, photo_url, status } = waiterData;
+  const { restaurant_id, user_id, first_name, last_name, phone, email, staff_role, task, task_done, photo_url, status } = waiterData;
 
   const result = await pool.query(
     `INSERT INTO waiters (
-      restaurant_id, user_id, first_name, last_name, phone, email, staff_role, task, photo_url, status
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
-    [restaurant_id, user_id, first_name, last_name, phone, email, staff_role || 'waiter', task || null, photo_url || null, status || 'active'],
+      restaurant_id, user_id, first_name, last_name, phone, email, staff_role, task, task_done, photo_url, status
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+    [restaurant_id, user_id, first_name, last_name, phone, email, staff_role || 'waiter', task || null, task_done || false, photo_url || null, status || 'active'],
   );
   return result.rows[0];
 };
