@@ -271,6 +271,9 @@ export const restaurantApi = {
   create: (data: Record<string, unknown>) => apiClient<{ success: boolean; restaurant: ApiRestaurant }>('/restaurants', { method: 'POST', body: JSON.stringify(data) }),
   update: (id: string | number, data: Record<string, unknown>) => apiClient<{ success: boolean; restaurant: ApiRestaurant }>(`/restaurants/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id: string | number) => apiClient<{ success: boolean }>(`/restaurants/${id}`, { method: 'DELETE' }),
+
+  addLocation: (restaurantId: string | number, data: Record<string, unknown>) =>
+    apiClient<{ success: boolean }>(`/restaurants/${restaurantId}/locations`, { method: 'POST', body: JSON.stringify(data) }),
   
   // Menu Items
   getMenu: (restaurantId: string | number) => apiClient<{ success: boolean; menuItems: ApiMenuItem[] }>(`/restaurants/${restaurantId}/menu`, { method: 'GET' }),

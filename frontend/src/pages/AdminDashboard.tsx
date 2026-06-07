@@ -444,6 +444,7 @@ const RestaurantsTab: React.FC = () => {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "inactive">("all");
+  const [showAddModal, setShowAddModal] = useState(false);
 
   useEffect(() => {
     restaurantApi.getAll()
@@ -460,6 +461,11 @@ const RestaurantsTab: React.FC = () => {
     } catch { /* silent — state unchanged */ }
   };
 
+  const handleCreated = (r: AdminRestaurant) => {
+    setRestaurants(prev => [{ ...r, is_active: true }, ...prev]);
+    setShowAddModal(false);
+  };
+
   const filtered = restaurants.filter(r => {
     const isActive = r.is_active ?? true;
     return r.name.toLowerCase().includes(search.toLowerCase()) &&
@@ -470,70 +476,95 @@ const RestaurantsTab: React.FC = () => {
   if (error) return <ErrorBanner message={error} />;
 
   return (
-    <div className="space-y-base">
-      <div className="flex flex-col sm:flex-row gap-base">
-        <div className="flex-1 card flex items-center gap-3 px-4 py-3">
-          <span className="material-symbols-outlined text-on-surface-variant text-xl">search</span>
-          <input type="text" placeholder="Search restaurants…" value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="flex-1 bg-transparent text-body-sm text-on-surface outline-none placeholder:text-on-surface-variant" />
-        </div>
-        <div className="card flex items-center gap-3 px-4 py-3">
-          <span className="material-symbols-outlined text-on-surface-variant text-xl">filter_list</span>
-          <select value={filter} onChange={e => setFilter(e.target.value as any)}
-            className="bg-transparent text-body-sm text-on-surface outline-none cursor-pointer">
-            <option value="all">All</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-        </div>
-      </div>
+    <>
+      {showAddModal && (
+        <AddRestaurantModal
+          onClose={() => setShowAddModal(false)}
+          onCreated={handleCreated}
+        />
+      )}
 
-      {filtered.length === 0
-        ? <EmptyState icon="store" label="No restaurants found" />
-        : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-base">
-            {filtered.map(r => {
-              const isActive = r.is_active ?? true;
-              return (
-                <div key={r.id} className="card overflow-hidden hover:shadow-lg transition-all group">
-                  <div className="h-20 bg-gradient-to-br from-primary-fixed to-primary-fixed-dim flex items-center justify-center">
-                    <span className="text-2xl font-bold text-on-primary-container">
-                      {r.name.substring(0, 2).toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="p-4">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <h3 className="text-body-md font-semibold text-on-surface">{r.name}</h3>
-                        <p className="text-label-bold text-on-surface-variant mt-0.5">{r.cuisine_type || "—"}</p>
-                      </div>
-                      <StatusBadge status={isActive ? "active" : "inactive"} />
-                    </div>
-                    {r.email && <p className="text-label-bold text-on-surface-variant mt-2">{r.email}</p>}
-                    <p className="text-label-bold text-on-surface-variant mt-1">
-                      Added {new Date(r.created_at).toLocaleDateString()}
-                    </p>
-                    <div className="mt-4 pt-3 border-t border-outline-variant flex items-center justify-between">
-                      <span className="text-body-sm text-on-surface-variant">
-                        {isActive ? "Restaurant is live" : "Disabled"}
-                      </span>
-                      <button
-                        onClick={() => handleToggle(r)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${isActive ? "bg-primary-container" : "bg-surface-variant"}`}
-                        role="switch" aria-checked={isActive}
-                      >
-                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${isActive ? "translate-x-6" : "translate-x-1"}`} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+      <div className="space-y-base">
+        {/* Toolbar */}
+        <div className="flex flex-col sm:flex-row gap-base">
+          <div className="flex-1 card flex items-center gap-3 px-4 py-3">
+            <span className="material-symbols-outlined text-on-surface-variant text-xl">search</span>
+            <input type="text" placeholder="Search restaurants…" value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="flex-1 bg-transparent text-body-sm text-on-surface outline-none placeholder:text-on-surface-variant" />
           </div>
-        )
-      }
-    </div>
+          <div className="card flex items-center gap-3 px-4 py-3">
+            <span className="material-symbols-outlined text-on-surface-variant text-xl">filter_list</span>
+            <select value={filter} onChange={e => setFilter(e.target.value as any)}
+              className="bg-transparent text-body-sm text-on-surface outline-none cursor-pointer">
+              <option value="all">All</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="btn-primary px-5 py-3 flex items-center gap-2 whitespace-nowrap">
+            <span className="material-symbols-outlined text-xl">add</span>
+            Add Restaurant
+          </button>
+        </div>
+
+        {filtered.length === 0
+          ? (
+            <div className="card flex flex-col items-center justify-center py-16 gap-4">
+              <span className="material-symbols-outlined text-5xl opacity-30 text-on-surface-variant">store</span>
+              <p className="text-body-sm text-on-surface-variant">No restaurants found</p>
+              <button onClick={() => setShowAddModal(true)} className="btn-primary px-6 py-2.5 flex items-center gap-2">
+                <span className="material-symbols-outlined text-base">add</span>
+                Add your first restaurant
+              </button>
+            </div>
+          )
+          : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-base">
+              {filtered.map(r => {
+                const isActive = r.is_active ?? true;
+                return (
+                  <div key={r.id} className="card overflow-hidden hover:shadow-lg transition-all group">
+                    <div className="h-20 bg-gradient-to-br from-primary-fixed to-primary-fixed-dim flex items-center justify-center">
+                      <span className="text-2xl font-bold text-on-primary-container">
+                        {r.name.substring(0, 2).toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="p-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <h3 className="text-body-md font-semibold text-on-surface">{r.name}</h3>
+                          <p className="text-label-bold text-on-surface-variant mt-0.5">{r.cuisine_type || "—"}</p>
+                        </div>
+                        <StatusBadge status={isActive ? "active" : "inactive"} />
+                      </div>
+                      {r.email && <p className="text-label-bold text-on-surface-variant mt-2">{r.email}</p>}
+                      <p className="text-label-bold text-on-surface-variant mt-1">
+                        Added {new Date(r.created_at).toLocaleDateString()}
+                      </p>
+                      <div className="mt-4 pt-3 border-t border-outline-variant flex items-center justify-between">
+                        <span className="text-body-sm text-on-surface-variant">
+                          {isActive ? "Restaurant is live" : "Disabled"}
+                        </span>
+                        <button
+                          onClick={() => handleToggle(r)}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${isActive ? "bg-primary-container" : "bg-surface-variant"}`}
+                          role="switch" aria-checked={isActive}
+                        >
+                          <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${isActive ? "translate-x-6" : "translate-x-1"}`} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )
+        }
+      </div>
+    </>
   );
 };
 
