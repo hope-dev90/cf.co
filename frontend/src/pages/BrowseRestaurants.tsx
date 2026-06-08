@@ -21,6 +21,8 @@ const getRestaurantImg = (r: ApiRestaurant, index: number): string => {
   }
   return FOOD_IMAGES[index % FOOD_IMAGES.length];
 };
+
+const BrowseRestaurants: React.FC = () => {
   const { profile } = useAuth();
   const searchRef = useRef<HTMLInputElement | null>(null);
   const [restaurants, setRestaurants] = useState<ApiRestaurant[]>([]);
