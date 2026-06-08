@@ -292,11 +292,40 @@ interface RestaurantForm {
   website: string;
   address: string;
   city: string;
+  image_url: string;
 }
 
 const EMPTY_FORM: RestaurantForm = {
   name: "", cuisine_type: "", description: "",
-  phone: "", email: "", website: "", address: "", city: "",
+  phone: "", email: "", website: "", address: "", city: "", image_url: "",
+};
+
+// Curated restaurant images (Pinterest + Pexels)
+const FALLBACK_IMAGES = [
+  "https://i.pinimg.com/736x/1a/2b/3c/1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p.jpg",
+  "https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=800",
+  "https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg?auto=compress&cs=tinysrgb&w=800",
+  "https://images.pexels.com/photos/958545/pexels-photo-958545.jpeg?auto=compress&cs=tinysrgb&w=800",
+  "https://images.pexels.com/photos/1410235/pexels-photo-1410235.jpeg?auto=compress&cs=tinysrgb&w=800",
+  "https://images.pexels.com/photos/1059905/pexels-photo-1059905.jpeg?auto=compress&cs=tinysrgb&w=800",
+  "https://images.pexels.com/photos/1624487/pexels-photo-1624487.jpeg?auto=compress&cs=tinysrgb&w=800",
+  "https://images.pexels.com/photos/941861/pexels-photo-941861.jpeg?auto=compress&cs=tinysrgb&w=800",
+  "https://images.pexels.com/photos/376464/pexels-photo-376464.jpeg?auto=compress&cs=tinysrgb&w=800",
+  "https://images.pexels.com/photos/1279330/pexels-photo-1279330.jpeg?auto=compress&cs=tinysrgb&w=800",
+  "https://images.pexels.com/photos/2983101/pexels-photo-2983101.jpeg?auto=compress&cs=tinysrgb&w=800",
+  "https://images.pexels.com/photos/3338681/pexels-photo-3338681.jpeg?auto=compress&cs=tinysrgb&w=800",
+  "https://i.pinimg.com/736x/8f/2a/6c/8f2a6c3d4e5f6789abcdef01234567.jpg",
+  "https://images.pexels.com/photos/67468/pexels-photo-67468.jpeg?auto=compress&cs=tinysrgb&w=800",
+  "https://images.pexels.com/photos/696218/pexels-photo-696218.jpeg?auto=compress&cs=tinysrgb&w=800",
+];
+
+const getRestaurantImage = (restaurant: AdminRestaurant, index: number): string => {
+  if (restaurant.image_url) {
+    return restaurant.image_url.startsWith("http")
+      ? restaurant.image_url
+      : `${import.meta.env.VITE_API_URL || "http://localhost:5000"}${restaurant.image_url}`;
+  }
+  return FALLBACK_IMAGES[index % FALLBACK_IMAGES.length];
 };
 
 const AddRestaurantModal: React.FC<{
@@ -305,10 +334,29 @@ const AddRestaurantModal: React.FC<{
 }> = ({ onClose, onCreated }) => {
   const [form, setForm] = useState<RestaurantForm>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [preview, setPreview] = useState<string>("");
   const [error, setError] = useState("");
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const set = (k: keyof RestaurantForm, v: string) =>
     setForm(p => ({ ...p, [k]: v }));
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Show local preview immediately
+    setPreview(URL.createObjectURL(file));
+    setUploading(true);
+    try {
+      const url = await uploadApi.restaurantImage(file);
+      set("image_url", url);
+    } catch {
+      setError("Image upload failed. You can still save without an image.");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -322,9 +370,9 @@ const AddRestaurantModal: React.FC<{
         phone: form.phone || null,
         email: form.email || null,
         website: form.website || null,
+        image_url: form.image_url || null,
       });
       if (res.restaurant) {
-        // add location if provided
         if (form.address || form.city) {
           try {
             await restaurantApi.addLocation(res.restaurant.id, {
@@ -347,7 +395,6 @@ const AddRestaurantModal: React.FC<{
   const labelCls = "block text-label-bold text-on-surface-variant mb-1.5";
 
   return (
-    /* Backdrop */
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="w-full max-w-lg bg-surface rounded-2xl shadow-2xl overflow-hidden animate-slide-up">
@@ -361,8 +408,40 @@ const AddRestaurantModal: React.FC<{
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto max-h-[70vh]">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto max-h-[75vh]">
           {error && <ErrorBanner message={error} />}
+
+          {/* Image upload */}
+          <div>
+            <label className={labelCls}>Restaurant Image</label>
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className={`relative h-36 rounded-xl border-2 border-dashed cursor-pointer overflow-hidden transition-all ${
+                preview ? "border-primary-container" : "border-outline-variant hover:border-primary-container/50 hover:bg-surface-container-low"
+              }`}
+            >
+              {preview ? (
+                <>
+                  <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                    <span className="text-white text-body-sm font-semibold">Change image</span>
+                  </div>
+                  {uploading && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                      <span className="material-symbols-outlined text-white text-3xl animate-spin">progress_activity</span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full gap-2 text-on-surface-variant">
+                  <span className="material-symbols-outlined text-3xl">add_photo_alternate</span>
+                  <p className="text-body-sm">Click to upload image</p>
+                  <p className="text-label-bold opacity-60">JPG, PNG, WEBP up to 8MB</p>
+                </div>
+              )}
+            </div>
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+          </div>
 
           {/* Basic info */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -422,10 +501,12 @@ const AddRestaurantModal: React.FC<{
               className="flex-1 py-3 rounded-xl border border-outline-variant text-body-sm font-semibold text-on-surface hover:bg-surface-container transition-colors">
               Cancel
             </button>
-            <button type="submit" disabled={saving}
+            <button type="submit" disabled={saving || uploading}
               className="flex-1 btn-primary py-3 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
               {saving
                 ? <><span className="material-symbols-outlined text-base animate-spin">progress_activity</span> Saving…</>
+                : uploading
+                ? <><span className="material-symbols-outlined text-base animate-spin">progress_activity</span> Uploading…</>
                 : <><span className="material-symbols-outlined text-base">add</span> Add Restaurant</>
               }
             </button>
@@ -445,6 +526,7 @@ const RestaurantsTab: React.FC = () => {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "inactive">("all");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   useEffect(() => {
     restaurantApi.getAll()
@@ -464,6 +546,19 @@ const RestaurantsTab: React.FC = () => {
   const handleCreated = (r: AdminRestaurant) => {
     setRestaurants(prev => [{ ...r, is_active: true }, ...prev]);
     setShowAddModal(false);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm("Delete this restaurant? This cannot be undone.")) return;
+    setDeletingId(id);
+    try {
+      await adminApi.deleteRestaurant(id);
+      setRestaurants(prev => prev.filter(r => r.id !== id));
+    } catch {
+      // silently ignore — restaurant stays in list
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const filtered = restaurants.filter(r => {
@@ -523,14 +618,30 @@ const RestaurantsTab: React.FC = () => {
           )
           : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-base">
-              {filtered.map(r => {
+              {filtered.map((r, idx) => {
                 const isActive = r.is_active ?? true;
                 return (
                   <div key={r.id} className="card overflow-hidden hover:shadow-lg transition-all group">
-                    <div className="h-20 bg-gradient-to-br from-primary-fixed to-primary-fixed-dim flex items-center justify-center">
-                      <span className="text-2xl font-bold text-on-primary-container">
-                        {r.name.substring(0, 2).toUpperCase()}
-                      </span>
+                    <div className="h-36 overflow-hidden relative bg-surface-container-low">
+                      <img
+                        src={getRestaurantImage(r, idx)}
+                        alt={r.name}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        onError={e => { (e.target as HTMLImageElement).src = FALLBACK_IMAGES[idx % FALLBACK_IMAGES.length]; }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                      {/* Delete button */}
+                      <button
+                        onClick={() => handleDelete(r.id)}
+                        disabled={deletingId === r.id}
+                        className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 hover:bg-error flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all disabled:opacity-50"
+                        aria-label="Delete restaurant"
+                      >
+                        {deletingId === r.id
+                          ? <span className="material-symbols-outlined text-white text-sm animate-spin">progress_activity</span>
+                          : <span className="material-symbols-outlined text-white text-sm">delete</span>
+                        }
+                      </button>
                     </div>
                     <div className="p-4">
                       <div className="flex items-start justify-between gap-2">

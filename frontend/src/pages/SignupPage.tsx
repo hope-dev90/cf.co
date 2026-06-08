@@ -96,6 +96,10 @@ const SignupPage: React.FC = () => {
   const [cuisineType, setCuisineType] = useState("");
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
+  const [restaurantImageUrl, setRestaurantImageUrl] = useState("");
+  const [restaurantImagePreview, setRestaurantImagePreview] = useState("");
+  const [imageUploading, setImageUploading] = useState(false);
+  const imageInputRef = React.useRef<HTMLInputElement>(null);
   const [operatingHours, setOperatingHours] = useState<OperatingHour[]>(
     DAYS.map((day) => ({
       day,
