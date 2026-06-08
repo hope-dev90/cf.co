@@ -14,6 +14,7 @@ const migrationFiles = [
   "update-table-availability.sql",
   "update-table-positions.sql",
   "update-order-payment.sql",
+  "add-staff-fields.sql",
   "add-restaurant-active.sql",
   "add-restaurant-image.sql",
 ];
