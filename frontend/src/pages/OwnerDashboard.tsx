@@ -42,8 +42,15 @@ const StaffCard: React.FC<{
   const [taskDone, setTaskDone] = React.useState(waiter.task_done || false);
   const [editing, setEditing] = React.useState(false);
 
+  // Keep local state in sync when parent refreshes waiter data
+  React.useEffect(() => {
+    setTaskInput(waiter.task || "");
+    setTaskDone(waiter.task_done || false);
+  }, [waiter.task, waiter.task_done]);
+
   const handleSaveTask = () => {
-    onAssignTask(taskInput, taskDone);
+    onAssignTask(taskInput, false);
+    setTaskDone(false);
     setEditing(false);
   };
 
@@ -52,6 +59,16 @@ const StaffCard: React.FC<{
     setTaskDone(newDone);
     onAssignTask(taskInput || waiter.task || "", newDone);
   };
+
+  // Clear task entirely — staff becomes free for new assignment
+  const handleMarkFree = () => {
+    setTaskInput("");
+    setTaskDone(false);
+    setEditing(false);
+    onAssignTask("", false);
+  };
+
+  const isFree = !taskInput.trim();
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-5 custom-shadow hover:shadow-md transition-shadow flex flex-col">
@@ -73,6 +90,10 @@ const StaffCard: React.FC<{
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${statusColors[waiter.status || "active"]}`}>
               {(waiter.status || "active").replace("_", " ")}
             </span>
+            {/* Free / Busy indicator */}
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isFree ? "bg-green-100 text-green-700" : taskDone ? "bg-blue-100 text-blue-700" : "bg-orange-100 text-orange-700"}`}>
+              {isFree ? "● Free" : taskDone ? "✓ Done" : "◉ Busy"}
+            </span>
           </div>
         </div>
       </div>
@@ -88,9 +109,19 @@ const StaffCard: React.FC<{
       <div className="mt-auto">
         <div className="flex items-center justify-between mb-1.5">
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Task</p>
-          <button onClick={() => setEditing(e => !e)} className="text-[10px] text-primary-container font-semibold hover:opacity-70">
-            {editing ? "Cancel" : taskInput ? "Edit" : "+ Assign"}
-          </button>
+          {!editing && (
+            <button
+              onClick={() => setEditing(true)}
+              className="text-[10px] text-primary-container font-semibold hover:opacity-70"
+            >
+              {isFree ? "+ Assign" : "Edit"}
+            </button>
+          )}
+          {editing && (
+            <button onClick={() => setEditing(false)} className="text-[10px] text-gray-400 font-semibold hover:opacity-70">
+              Cancel
+            </button>
+          )}
         </div>
 
         {editing ? (
@@ -103,25 +134,44 @@ const StaffCard: React.FC<{
               placeholder="Describe the task..."
               className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
             />
-            <div className="flex gap-2">
-              <button onClick={handleSaveTask} className="flex-1 py-1.5 bg-primary-container text-on-primary text-xs font-semibold rounded-lg hover:opacity-90">
-                Save Task
-              </button>
-            </div>
+            <button
+              onClick={handleSaveTask}
+              disabled={!taskInput.trim()}
+              className="w-full py-1.5 bg-primary-container text-on-primary text-xs font-semibold rounded-lg hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Assign Task
+            </button>
           </div>
-        ) : taskInput ? (
-          <div className={`rounded-lg px-3 py-2 flex items-start gap-2 ${taskDone ? "bg-green-50 border border-green-100" : "bg-amber-50 border border-amber-100"}`}>
-            <input
-              type="checkbox"
-              checked={taskDone}
-              onChange={handleToggleDone}
-              className="mt-0.5 cursor-pointer accent-green-600"
-            />
-            <p className={`text-xs flex-1 ${taskDone ? "line-through text-green-600" : "text-amber-800"}`}>{taskInput}</p>
-            {taskDone && <span className="text-[10px] font-bold text-green-600">Done</span>}
+        ) : isFree ? (
+          <div className="rounded-lg px-3 py-2.5 bg-green-50 border border-green-100 flex items-center gap-2">
+            <span className="text-base">🟢</span>
+            <p className="text-xs text-green-700 font-medium">Available for assignment</p>
           </div>
         ) : (
-          <p className="text-xs text-gray-300 italic">No task assigned</p>
+          <div className={`rounded-lg px-3 py-2 flex flex-col gap-2 ${taskDone ? "bg-green-50 border border-green-100" : "bg-amber-50 border border-amber-100"}`}>
+            <div className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                checked={taskDone}
+                onChange={handleToggleDone}
+                className="mt-0.5 cursor-pointer accent-green-600 flex-shrink-0"
+              />
+              <p className={`text-xs flex-1 leading-relaxed ${taskDone ? "line-through text-green-600" : "text-amber-800"}`}>
+                {taskInput}
+              </p>
+            </div>
+
+            {/* Mark as Free button — only shown when task is checked done */}
+            {taskDone && (
+              <button
+                onClick={handleMarkFree}
+                className="w-full py-1.5 bg-green-600 hover:bg-green-700 text-white text-[11px] font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5"
+              >
+                <span className="material-symbols-outlined text-sm">person_check</span>
+                Mark as Free — Assign New Task
+              </button>
+            )}
+          </div>
         )}
       </div>
 
