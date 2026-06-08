@@ -306,8 +306,8 @@ export const addWaiterController = async (req, res) => {
     });
     res.status(201).json({ success: true, waiter });
   } catch (error) {
-    console.error("Add waiter error:", error);
-    res.status(500).json({ success: false, message: "Failed to add waiter" });
+    console.error("Add waiter error:", error.message, error.detail || "");
+    res.status(500).json({ success: false, message: error.message || "Failed to add waiter" });
   }
 };
 
