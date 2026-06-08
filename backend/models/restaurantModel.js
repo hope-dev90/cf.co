@@ -193,12 +193,13 @@ export const createRestaurant = async (restaurantData) => {
     email,
     website,
     operating_hours,
+    image_url,
   } = restaurantData;
 
   const result = await pool.query(
     `INSERT INTO restaurants (
-      user_id, name, description, cuisine_type, phone, email, website, operating_hours
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      user_id, name, description, cuisine_type, phone, email, website, operating_hours, image_url
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
     [
       user_id,
       name,
@@ -208,6 +209,7 @@ export const createRestaurant = async (restaurantData) => {
       email,
       website,
       operating_hours,
+      image_url || null,
     ],
   );
   return result.rows[0];

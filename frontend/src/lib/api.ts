@@ -261,6 +261,25 @@ export const adminApi = {
       method: 'PATCH',
       body: JSON.stringify({ is_active }),
     }),
+  deleteRestaurant: (id: number) =>
+    apiClient<{ success: boolean }>(`/restaurants/${id}`, { method: 'DELETE' }),
+};
+
+// Upload API (multipart, not JSON)
+export const uploadApi = {
+  restaurantImage: async (file: File): Promise<string> => {
+    const token = localStorage.getItem('auth_token');
+    const formData = new FormData();
+    formData.append('image', file);
+    const res = await fetch(`${API_BASE_URL}/upload/restaurant-image`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.message || 'Upload failed');
+    return data.url as string;
+  },
 };
 
 // Restaurants API

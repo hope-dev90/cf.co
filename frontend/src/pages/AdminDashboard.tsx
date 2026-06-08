@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { authApi, restaurantApi, adminApi } from "../lib/api";
+import { authApi, restaurantApi, adminApi, uploadApi } from "../lib/api";
 import type { ApiUser, ApiRestaurant, ApiOrder } from "../lib/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
