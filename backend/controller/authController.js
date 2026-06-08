@@ -215,6 +215,7 @@ export const register = async (req, res) => {
         email: user.email,
         website: null,
         operating_hours: JSON.stringify(restaurantData.operatingHours),
+        image_url: restaurantData.imageUrl || null,
       });
 
       if (restaurantData.address || restaurantData.city) {

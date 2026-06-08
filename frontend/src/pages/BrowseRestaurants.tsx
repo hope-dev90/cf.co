@@ -13,7 +13,14 @@ const FOOD_IMAGES = [
   "https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg?auto=compress&cs=tinysrgb&w=800",
 ];
 
-const BrowseRestaurants: React.FC = () => {
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+const getRestaurantImg = (r: ApiRestaurant, index: number): string => {
+  if (r.image_url) {
+    return r.image_url.startsWith("http") ? r.image_url : `${API_BASE}${r.image_url}`;
+  }
+  return FOOD_IMAGES[index % FOOD_IMAGES.length];
+};
   const { profile } = useAuth();
   const searchRef = useRef<HTMLInputElement | null>(null);
   const [restaurants, setRestaurants] = useState<ApiRestaurant[]>([]);
@@ -229,7 +236,7 @@ const BrowseRestaurants: React.FC = () => {
                 {/* Image */}
                 <div className="relative h-48 overflow-hidden bg-gray-100 shrink-0">
                   <img
-                    src={FOOD_IMAGES[index % FOOD_IMAGES.length]}
+                    src={getRestaurantImg(restaurant, index)}
                     alt={restaurant.name}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                     loading="lazy"

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   User,
@@ -109,6 +109,28 @@ const SignupPage: React.FC = () => {
     })),
   );
 
+  const handleRestaurantImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setRestaurantImagePreview(URL.createObjectURL(file));
+    setImageUploading(true);
+    try {
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const formData = new FormData();
+      formData.append("image", file);
+      const res = await fetch(`${API_BASE}/upload/restaurant-image`, {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.success) setRestaurantImageUrl(data.url);
+    } catch {
+      // silent — image is optional
+    } finally {
+      setImageUploading(false);
+    }
+  };
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -149,6 +171,7 @@ const SignupPage: React.FC = () => {
               address,
               city,
               operatingHours,
+              imageUrl: restaurantImageUrl || undefined,
             }
           : undefined;
 
@@ -332,6 +355,51 @@ const SignupPage: React.FC = () => {
                   <ChefHat className="w-6 h-6 text-[#e8722a]" />
                   Your Restaurant Details
                 </h2>
+
+                {/* Restaurant image upload */}
+                <div className="space-y-1">
+                  <label className="text-sm font-semibold text-[#1a1a2e]">
+                    Restaurant Cover Image
+                  </label>
+                  <div
+                    onClick={() => imageInputRef.current?.click()}
+                    className={`relative h-32 rounded-xl border-2 border-dashed cursor-pointer overflow-hidden transition-all ${
+                      restaurantImagePreview
+                        ? "border-[#e8722a]"
+                        : "border-gray-300 hover:border-[#e8722a] hover:bg-orange-50"
+                    }`}
+                  >
+                    {restaurantImagePreview ? (
+                      <>
+                        <img src={restaurantImagePreview} alt="Preview" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                          <p className="text-white text-sm font-semibold">Change image</p>
+                        </div>
+                        {imageUploading && (
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                            <Loader2 className="text-white animate-spin" size={24} />
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full gap-1 text-gray-400">
+                        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <p className="text-sm">Click to upload a cover photo</p>
+                        <p className="text-xs">Optional — JPG, PNG up to 8MB</p>
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleRestaurantImageChange}
+                    className="hidden"
+                  />
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">
